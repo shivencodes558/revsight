@@ -4,5 +4,32 @@
   "outputDirectory": "dist",
   "functions": {
     "api/*.js": { "maxDuration": 30 }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/health", "destination": "/api/core?route=health" },
+    { "source": "/api/overall", "destination": "/api/core?route=overall" },
+    { "source": "/api/cube", "destination": "/api/core?route=cube" },
+    { "source": "/api/channel-detail", "destination": "/api/core?route=channel-detail" },
+
+    { "source": "/api/daily", "destination": "/api/mkt-daily?route=daily" },
+    { "source": "/api/marketplace", "destination": "/api/mkt-daily?route=marketplace" },
+    { "source": "/api/adspend", "destination": "/api/mkt-daily?route=adspend" },
+    { "source": "/api/brand-city", "destination": "/api/mkt-daily?route=brand-city" },
+    { "source": "/api/brand-share", "destination": "/api/mkt-daily?route=brand-share" },
+
+    { "source": "/api/mp-wbr", "destination": "/api/wbr?route=mp-wbr" },
+    { "source": "/api/mp-wbr-channel", "destination": "/api/wbr?route=mp-wbr-channel" },
+    { "source": "/api/web-wbr", "destination": "/api/wbr?route=web-wbr" },
+
+    { "source": "/api/website-daily", "destination": "/api/website?route=website-daily" },
+    { "source": "/api/gokwik", "destination": "/api/website?route=gokwik" },
+    { "source": "/api/gokwik-filters", "destination": "/api/website?route=gokwik-filters" },
+
+    { "source": "/api/secondary-sales", "destination": "/api/secondary?route=secondary-sales" },
+    { "source": "/api/secondary-filters", "destination": "/api/secondary?route=secondary-filters" },
+
+    { "source": "/api/city-sales", "destination": "/api/city?route=city-sales" },
+    { "source": "/api/city-filters", "destination": "/api/city?route=city-filters" },
+    { "source": "/api/sku-matrix", "destination": "/api/city?route=sku-matrix" }
+  ]
 }

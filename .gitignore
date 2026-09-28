@@ -9,3 +9,6 @@ npm-debug.log*
 .claude/
 snowflake.log
 verify-session.txt
+
+.vercel
+.env*

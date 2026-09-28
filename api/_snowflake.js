@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import fs from 'fs';
 import snowflake from 'snowflake-sdk';
-import { parseDate } from './dates.js';
+import { parseDate } from './_dates.js';
 
 // ── silence the SDK's own logging in serverless (keeps Vercel logs clean) ──
 try { snowflake.configure({ logLevel: 'ERROR' }); } catch (_) {}

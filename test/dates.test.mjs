@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseDate, shiftYMD, daysBetween } from '../api/dates.js';
+import { parseDate, shiftYMD, daysBetween } from '../api/_dates.js';
 
 test('ISO strings pass through', () => {
   assert.equal(parseDate('2026-08-04'), '2026-08-04');
