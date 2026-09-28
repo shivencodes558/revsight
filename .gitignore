@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+*.p8
+.vercel
+.DS_Store
+npm-debug.log*
+.claude/
+snowflake.log
+verify-session.txt

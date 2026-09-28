@@ -1,0 +1,207 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   styles-matrix.css — the month-over-month SKU/category matrices.
+
+   The whole design problem here is a table that is 3 identity columns + up
+   to 18 month columns wide. The answer is a horizontally scrolling body with
+   position:sticky identity columns and a sticky header, so the two things you
+   need to keep your bearings (which row, which month) never scroll away.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.mx {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  margin-bottom: 14px;
+  overflow: hidden;                 /* keeps the sticky cells inside the radius */
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+.mx-head {
+  display: flex; align-items: flex-end; gap: 14px;
+  padding: 13px 16px 11px;
+  border-bottom: 1px solid var(--line);
+}
+.mx-titles { min-width: 0; flex: 1; }
+.mx-titles h3 {
+  margin: 0; font-family: var(--display); font-size: 14px; font-weight: 700;
+  letter-spacing: -0.01em; color: var(--ink);
+}
+.mx-titles p {
+  margin: 2px 0 0; font-family: var(--mono); font-size: 10px;
+  color: var(--ink-3); letter-spacing: -0.005em;
+}
+.mx-tools { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+
+.mx-find {
+  width: 132px; padding: 5px 9px;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel-2); color: var(--ink);
+  font-family: inherit; font-size: 11.5px; transition: border-color .13s;
+}
+.mx-find:focus { outline: none; border-color: var(--accent); background: var(--panel); }
+.mx-find::placeholder { color: var(--ink-3); }
+
+.mx-count {
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-3);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.mx-dl {
+  border: 1px solid var(--line); background: var(--panel);
+  border-radius: 6px; padding: 5px 9px; cursor: pointer;
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .04em;
+  color: var(--ink-2); white-space: nowrap; transition: all .13s;
+}
+.mx-dl:hover { background: var(--panel-3); color: var(--ink); border-color: var(--ink-3); }
+
+/* ── the scrolling grid ─────────────────────────────────────────────────── */
+.mx-scroll { overflow: auto; max-height: 520px; }
+
+.mx-tbl {
+  border-collapse: separate;        /* separate, so sticky cells keep borders */
+  border-spacing: 0;
+  width: max-content; min-width: 100%;
+  font-size: 11.5px;
+}
+
+.mx-tbl th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-3); text-align: right;
+  padding: 7px 11px; white-space: nowrap;
+}
+.mx-tbl th.mx-id, .mx-tbl th.mx-ix { text-align: left; }
+
+/* month headers double as the sort control */
+.mx-tbl th.mx-m { cursor: pointer; transition: color .13s, background .13s; }
+.mx-tbl th.mx-m:hover { color: var(--ink); background: var(--panel-3); }
+.mx-tbl th.mx-m.on { color: var(--accent-ink); background: var(--accent-soft); }
+
+.mx-tbl td {
+  padding: 5.5px 11px; text-align: right; white-space: nowrap;
+  border-bottom: 1px solid var(--line-2); color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.mx-tbl tbody tr:last-child td { border-bottom: none; }
+.mx-tbl tbody tr:hover td { background: var(--panel-up); }
+
+/* ── row index + sticky identity columns ────────────────────────────────── */
+.mx-tbl .mx-ix {
+  position: sticky; left: 0; z-index: 1;
+  width: 34px; min-width: 34px; text-align: right;
+  background: var(--panel); color: var(--ink-3);
+  font-family: var(--mono); font-size: 9.5px;
+}
+.mx-tbl th.mx-ix { z-index: 3; background: var(--panel-2); }
+
+.mx-tbl .mx-id {
+  position: sticky; z-index: 1; text-align: left;
+  background: var(--panel);
+  max-width: 250px; overflow: hidden; text-overflow: ellipsis;
+}
+.mx-tbl th.mx-id { z-index: 3; background: var(--panel-2); }
+
+/* Offsets must match the widths below, or the columns overlap when scrolled. */
+.mx-tbl .mx-id0 { left: 34px;  min-width: 92px;  font-weight: 570; }
+.mx-tbl .mx-id1 { left: 126px; min-width: 210px; color: var(--ink-2); }
+.mx-tbl .mx-id2 { left: 336px; min-width: 118px; color: var(--ink-3);
+  border-right: 1px solid var(--line); }
+/* A single-identity-column table (the category tables) closes the frame on id0. */
+.mx-tbl .mx-id0:last-of-type { border-right: 1px solid var(--line); }
+
+/* hover must repaint the sticky cells too, or they read as a separate row */
+.mx-tbl tbody tr:hover .mx-id,
+.mx-tbl tbody tr:hover .mx-ix { background: var(--panel-up); }
+
+/* ── pinned TOTAL row ───────────────────────────────────────────────────── */
+.mx-tbl tr.mx-total td {
+  position: sticky; top: 26px; z-index: 2;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--line);
+  font-weight: 660; color: var(--accent-ink);
+}
+.mx-tbl tr.mx-total .mx-id,
+.mx-tbl tr.mx-total .mx-ix {
+  z-index: 3; background: var(--accent-soft);
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .06em;
+}
+.mx-tbl tr.mx-total:hover td,
+.mx-tbl tr.mx-total:hover .mx-id { background: var(--accent-soft); }
+
+/* A filtered total is a different claim from a full one, so it should not
+   look identical: the accent turns solid and the label goes bold, making it
+   obvious at a glance that the denominator on screen has changed. */
+.mx-tbl tr.mx-total.mx-filtered td,
+.mx-tbl tr.mx-total.mx-filtered .mx-id,
+.mx-tbl tr.mx-total.mx-filtered .mx-ix,
+.mx-tbl tr.mx-total.mx-filtered:hover td,
+.mx-tbl tr.mx-total.mx-filtered:hover .mx-id {
+  background: var(--accent); color: var(--accent-on);
+}
+.mx-tbl tr.mx-total.mx-filtered .mx-id0 { font-weight: 800; letter-spacing: .1em; }
+
+/* the (unmapped) bucket is a data-quality row, not a product — say so visually */
+.mx-tbl tr.mx-unmapped td,
+.mx-tbl tr.mx-unmapped .mx-id,
+.mx-tbl tr.mx-unmapped .mx-ix {
+  font-style: italic; color: var(--ink-3);
+}
+.mx-tbl tr.mx-unmapped .mx-id0 { font-style: normal; font-family: var(--mono); font-size: 10px; }
+
+.mx-empty {
+  text-align: center !important; padding: 26px !important;
+  color: var(--ink-3); font-size: 11.5px;
+}
+
+/* ── pager ──────────────────────────────────────────────────────────────── */
+.mx-foot {
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
+  padding: 8px 16px; border-top: 1px solid var(--line);
+  background: var(--panel-2);
+}
+.mx-foot button {
+  width: 24px; height: 24px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--panel);
+  color: var(--ink-2); cursor: pointer; font-size: 13px; line-height: 1;
+  transition: all .13s;
+}
+.mx-foot button:hover:not(:disabled) { background: var(--panel-3); color: var(--ink); }
+.mx-foot button:disabled { opacity: .35; cursor: default; }
+.mx-foot span {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+  margin: 0 6px; font-variant-numeric: tabular-nums;
+}
+.mx-foot span i { color: var(--ink-3); font-style: normal; }
+
+/* ── span selector (6M / 12M / 18M) ─────────────────────────────────────── */
+.mx-span {
+  display: inline-flex; gap: 2px; padding: 2px;
+  background: var(--panel-3); border-radius: 7px;
+}
+.mx-span button {
+  border: none; background: none; cursor: pointer;
+  font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+  letter-spacing: .05em; color: var(--ink-3);
+  padding: 5px 10px; border-radius: 5px; transition: all .13s;
+}
+.mx-span button:hover { color: var(--ink); }
+.mx-span button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+/* ── caveat lines ───────────────────────────────────────────────────────── */
+.mx-caveat {
+  margin: 0 0 13px; font-size: 11px; line-height: 1.5; color: var(--ink-3);
+  max-width: 82ch;
+}
+.mx-caveat b { color: var(--ink-2); font-weight: 620; }
+.mx-caveat.warn {
+  border-left: 3px solid var(--accent); background: var(--accent-soft);
+  color: var(--ink-2); padding: 9px 13px; border-radius: 0 6px 6px 0;
+}
+
+@media (max-width: 1100px) {
+  .mx-head { flex-direction: column; align-items: stretch; }
+  .mx-tbl .mx-id1 { max-width: 150px; min-width: 150px; }
+  .mx-tbl .mx-id2 { left: 276px; }
+}

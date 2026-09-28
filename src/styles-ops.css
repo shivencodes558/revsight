@@ -1,0 +1,269 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Operational-analytics components — the denser patterns from the
+   reference: labelled panels with inline basis chips, hashtag tab rows,
+   a scrolling insight-card carousel, metric cards with area sparklines,
+   and a horizontal value-tab strip. Tokens come from styles.css.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── channel logo inside a dark-rail nav row ───────────────────────────── */
+/* Brand marques are dark-on-transparent, so they need a light plate to read
+   against the navy rail. */
+.nav-logo {
+  width: 18px; height: 18px; flex: none; border-radius: 4px;
+  background: #fff; padding: 1.5px; object-fit: contain;
+}
+/* a hairline above a row that starts a new kind of entry inside a section
+   (e.g. the daily report under a list of channels) */
+.nav-item.divide { margin-top: 7px; padding-top: 12px; border-top: 1px solid var(--sidebar-line); border-radius: 0 0 var(--r-sm) var(--r-sm); }
+
+/* ── channel picker ────────────────────────────────────────────────────────
+   Family tabs (QComm / ECom) above a grid of logo chips. Every chip sits on a
+   white plate at ALL times so the brand marque is legible against the navy
+   rail without being clicked — selection is signalled by a ring and a tick,
+   not by making the unselected ones disappear. ─────────────────────────── */
+.famtabs {
+  display: flex; gap: 16px; margin: 2px 0 11px;
+  border-bottom: 1px solid var(--sidebar-line);
+}
+.famtabs button {
+  position: relative; display: inline-flex; align-items: center; gap: 5px;
+  border: 0; background: transparent; cursor: pointer; font-family: var(--font);
+  font-size: 12.5px; font-weight: 570; color: var(--sidebar-ink-2);
+  padding: 7px 0 8px; transition: color .13s;
+}
+.famtabs button:hover { color: var(--sidebar-ink); }
+.famtabs button.on { color: #fff; }
+.famtabs button.on::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
+  height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
+}
+.famcount {
+  font-size: 8.5px; font-weight: 700; padding: 0 4px; border-radius: 3px;
+  background: rgba(255,255,255,.13); color: var(--sidebar-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.famtabs button.on .famcount { background: rgba(255,255,255,.2); color: #fff; }
+
+/* Flex-wrap rather than a fixed grid: the families have different counts (3 vs
+   9), so any fixed column count leaves one of them with a ragged half-empty
+   final row. Wrapping and centring keeps every row balanced whatever the
+   count, and keeps the chips small. */
+.chgrid {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 7px; padding: 0 0 10px;
+}
+/* Twelve of the thirteen logo assets are square opaque brand tiles (Blinkit
+   #F8CB46, Zepto #3B006A, Instamart #FE5105, the marketplaces on white), so
+   the artwork IS the tile: no border, no padding — just clip it to a radius.
+   A chrome frame on top of a finished tile is what made these read as
+   stickers rather than app icons.
+
+   Tata Cliq is the exception: 259×112, a 2.31:1 wordmark. `object-fit: cover`
+   filled the square by cropping 57% of its width away, which is why it read
+   "TATA CL". `contain` letterboxes it instead — identical for the twelve
+   square assets, since contain and cover agree at 1:1 — and the white plate
+   gives the letterboxed bands a surface so the wordmark sits on white like
+   the rest rather than on the dark rail. The plate is invisible behind every
+   opaque tile, so it costs nothing for the other twelve. */
+.chchip {
+  position: relative; aspect-ratio: 1; flex: 0 0 auto; width: 36px; padding: 0;
+  border: 0; border-radius: 8px; background: #fff;
+  cursor: pointer; overflow: hidden; display: block;
+  /* No dimming of unselected tiles — every brand stays fully legible at rest,
+     and selection is signalled additively (ring + tick) rather than by fading
+     the others out. */
+  transition: transform .15s, box-shadow .15s;
+}
+.chchip img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.chchip:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.45); }
+.chchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* selected: a gold ring floating clear of the tile, so the artwork stays clean */
+.chchip.on {
+  overflow: visible;
+  box-shadow: 0 0 0 2px var(--sidebar), 0 0 0 3.5px var(--accent);
+}
+.chchip.on img { border-radius: 8px; }
+.chinit {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  background: var(--sidebar-3); border-radius: 8px;
+  font-size: 9px; font-weight: 800; color: var(--sidebar-ink-2); letter-spacing: .02em;
+}
+/* selected tick, as on the reference's platform chips */
+.chtick {
+  position: absolute; top: -5px; right: -5px; z-index: 2;
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--up); color: #fff; border: 1.5px solid var(--sidebar);
+  font-size: 7.5px; font-weight: 900; line-height: 1;
+  display: grid; place-items: center;
+}
+
+/* Collapsed rail is 68px — too narrow to pick a logo from, and the chips would
+   run the rail off the bottom. Hide the picker, as the labels are hidden;
+   expanding the rail brings it back with the selection intact. */
+.app.collapsed .chgrid, .app.collapsed .famtabs { display: none; }
+
+/* ── in-view sub-tabs — splits a long page into digestible sections ────── */
+.subtabs {
+  display: flex; gap: 4px; padding: 3px; margin-bottom: 14px;
+  background: var(--panel-3); border-radius: var(--r-sm); width: fit-content; max-width: 100%;
+  overflow-x: auto;
+}
+.subtabs button {
+  border: 0; background: transparent; cursor: pointer; font-family: var(--font);
+  font-size: 12.5px; font-weight: 560; color: var(--ink-2); white-space: nowrap;
+  padding: 7px 15px; border-radius: 6px; transition: all .13s;
+}
+.subtabs button:hover { color: var(--ink); }
+.subtabs button.on { background: var(--accent); color: var(--accent-on); font-weight: 660; }
+
+/* ── panel with an icon + title + inline "at/for" chips ────────────────── */
+.opanel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 14px; }
+.opanel-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 13px 16px; flex-wrap: wrap;
+}
+.opanel-title { display: inline-flex; align-items: center; gap: 9px; font-family: var(--display); font-size: 15px; font-weight: 700; letter-spacing: -0.015em; }
+.opanel-ic {
+  width: 26px; height: 26px; border-radius: 7px; flex: none;
+  background: var(--accent-soft); color: var(--accent-ink);
+  display: grid; place-items: center; font-size: 13px;
+}
+.opanel-at { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); font-weight: 500; }
+.atchip {
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 5px;
+}
+.atchip.neutral { background: var(--panel-3); color: var(--ink-2); }
+.opanel-body { padding: 0 16px 16px; }
+.opanel-tools { display: inline-flex; align-items: center; gap: 8px; }
+.collapse-x {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink-3); cursor: pointer;
+  display: grid; place-items: center; font-size: 11px; transition: all .13s;
+}
+.collapse-x:hover { background: var(--panel-3); color: var(--ink); }
+.powered { font-size: 9.5px; color: var(--ink-3); line-height: 1.25; }
+.powered b { display: block; font-weight: 620; color: var(--ink-2); }
+
+/* ── hashtag tab row with counts ───────────────────────────────────────── */
+.htabs { display: flex; gap: 8px; padding: 0 16px 13px; flex-wrap: wrap; }
+.htab {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink-2);
+  border-radius: var(--r-sm); padding: 7px 13px; cursor: pointer;
+  font-family: var(--font); font-size: 12px; font-weight: 550; transition: all .13s;
+}
+.htab:hover { border-color: var(--ink-3); color: var(--ink); }
+.htab.on { background: var(--accent); border-color: var(--accent-2); color: var(--accent-on); font-weight: 650; }
+.htab .hcount {
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 4px;
+  background: var(--panel-3); color: var(--ink-2);
+  font-size: 9.5px; font-weight: 750; display: grid; place-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.htab.on .hcount { background: rgba(0,0,0,.14); color: var(--accent-on); }
+
+/* ── horizontally scrolling insight-card carousel ──────────────────────── */
+.carousel { position: relative; padding: 0 16px 6px; }
+.carousel-track {
+  display: flex; gap: 11px; overflow-x: auto; scroll-behavior: smooth;
+  padding-bottom: 10px; scrollbar-width: thin;
+}
+.carousel-track::-webkit-scrollbar { height: 7px; }
+.carousel-track::-webkit-scrollbar-thumb { background: #C9CDD6; border-radius: 4px; }
+.carousel-track::-webkit-scrollbar-track { background: var(--panel-3); border-radius: 4px; }
+.cnav {
+  position: absolute; top: 44%; transform: translateY(-50%); z-index: 3;
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink-2);
+  cursor: pointer; display: grid; place-items: center; font-size: 11px;
+  box-shadow: 0 2px 8px rgba(20,22,28,.12);
+}
+.cnav:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cnav.l { left: 2px; }
+.cnav.r { right: 2px; }
+
+/* one insight card */
+.icard {
+  flex: none; width: 340px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel); overflow: hidden;
+}
+.icard-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 11px 0; }
+.irank {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid #F3C9C6; background: #FEF3F2; color: var(--down);
+  font-size: 9.5px; font-weight: 750; padding: 2px 7px; border-radius: 5px; white-space: nowrap;
+}
+.irank.gain { border-color: #C7E9D2; background: #ECF8F0; color: var(--up); }
+.icat { font-size: 9.5px; color: var(--ink-3); background: var(--panel-3); padding: 2px 7px; border-radius: 5px; white-space: nowrap; }
+.icard-mid { display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px 10px; }
+.ithumb {
+  width: 36px; height: 36px; border-radius: 7px; flex: none;
+  border: 1px solid var(--line); background: var(--panel-2);
+  display: grid; place-items: center; overflow: hidden; font-size: 14px; color: var(--ink-3);
+}
+.ithumb img { width: 100%; height: 100%; object-fit: contain; }
+.icard-txt { min-width: 0; flex: 1; }
+.iname { font-size: 12.5px; font-weight: 600; color: var(--ink); letter-spacing: -0.01em; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ipills { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.ipill {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  padding: 1.5px 7px; font-size: 9.5px; color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+.ipill .pd { width: 5px; height: 5px; border-radius: 50%; background: var(--cgold); flex: none; }
+/* mini table inside the card */
+.itbl { width: 100%; border-collapse: collapse; font-size: 11px; }
+.itbl th {
+  font-size: 9.5px; font-weight: 620; color: var(--ink-3);
+  padding: 6px 11px; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2);
+  background: var(--panel-2); text-align: right; white-space: nowrap; letter-spacing: 0; text-transform: none;
+}
+.itbl th:first-child { text-align: left; }
+.itbl td { padding: 7px 11px; border-bottom: 1px solid var(--line-2); text-align: right; font-variant-numeric: tabular-nums; }
+.itbl td:first-child { text-align: left; color: var(--ink-2); }
+.itbl tr:last-child td { border-bottom: 0; }
+.itbl .amt { font-weight: 620; color: var(--ink); display: block; }
+.itbl .dlt { font-size: 10px; font-weight: 620; display: block; margin-top: 1px; }
+.itbl .dlt.neg { color: var(--down); }
+.itbl .dlt.pos { color: var(--up); }
+
+/* ── metric card with area sparkline ──────────────────────────────────── */
+.mcards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.mcard { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 14px 15px 6px; }
+.mcard-lbl { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--ink-2); font-weight: 540; }
+.mcard-lbl .info {
+  width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line);
+  display: grid; place-items: center; font-size: 7.5px; color: var(--ink-3); cursor: help; flex: none;
+}
+.mcard-val { font-size: 25px; font-weight: 690; letter-spacing: -0.035em; margin-top: 7px; font-variant-numeric: tabular-nums; }
+.mcard-val small { font-size: 12px; font-weight: 500; color: var(--ink-3); letter-spacing: 0; margin-left: 5px; }
+.mcard-dlt { font-size: 11.5px; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.mcard-dlt b { font-weight: 650; }
+.mcard-dlt .neg { color: var(--down); }
+.mcard-dlt .pos { color: var(--up); }
+.mcard-dlt .vs { color: var(--ink-3); margin-left: 4px; }
+.mcard-spark { height: 92px; margin: 6px -6px 0; }
+
+/* ── category / scope strip of value tabs ─────────────────────────────── */
+.cstrip { display: flex; gap: 9px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: thin; }
+.cstrip::-webkit-scrollbar { height: 6px; }
+.cstrip::-webkit-scrollbar-thumb { background: #C9CDD6; border-radius: 4px; }
+.ctab {
+  flex: none; min-width: 146px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+  padding: 10px 13px; font-family: var(--font); transition: all .13s;
+}
+.ctab:hover { border-color: var(--ink-3); }
+.ctab.on { border-color: var(--accent); background: var(--accent-soft); }
+.ctab .cname { font-size: 12px; font-weight: 600; color: var(--ink-2); display: block; }
+.ctab.on .cname { color: var(--accent-ink); }
+.ctab .cval { font-size: 17px; font-weight: 680; color: var(--ink); letter-spacing: -0.025em; display: block; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.ctab .cdlt { font-size: 10.5px; font-weight: 620; display: block; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.ctab .cdlt.neg { color: var(--down); }
+.ctab .cdlt.pos { color: var(--up); }
+.ctab.empty { opacity: .55; cursor: default; }
+.ctab.empty .cval { font-size: 12px; font-weight: 500; color: var(--ink-3); font-style: italic; }
+
+@media (max-width: 1180px) { .mcards { grid-template-columns: 1fr; } }

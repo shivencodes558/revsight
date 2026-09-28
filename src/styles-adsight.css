@@ -1,0 +1,296 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Adsight chrome — the patterns that give that dashboard its character:
+   bordered monospace date-range controls, numbered section headers with a
+   mono subtitle, insight cards with a semantic left border, KPI cards with
+   an inline delta pill, and the floating "Ask" affordance.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── page title block ──────────────────────────────────────────────────── */
+.pagehead { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.pagehead h1 {
+  margin: 0; font-family: var(--display);
+  font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+  display: inline-flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+}
+.pagehead h1 .sub {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: .04em; color: var(--ink-3);
+}
+.pagehead p { margin: 1px 0 0; font-size: 11.5px; color: var(--ink-3); }
+
+/* ── bordered date-range control, mono value ───────────────────────────── */
+.rangebox {
+  display: inline-flex; flex-direction: column; gap: 2px;
+  border: 1px solid var(--card-line); border-radius: 11px;
+  background: var(--panel); padding: 8px 14px; min-width: 202px;
+}
+.rangebox .rk {
+  font-family: var(--mono); font-size: 8px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+/* "TIME PERIOD · MTD" — the preset reads as gold text after a muted dot,
+   not a filled pill, so the two boxes stay visually identical in weight. */
+.rangebox .rk em {
+  font-style: normal; color: var(--accent-ink); letter-spacing: .13em; font-weight: 700;
+}
+.rangebox .rk .rk-sep { font-style: normal; color: var(--ink-3); opacity: .7; }
+.rangebox .rv {
+  display: flex; align-items: center; justify-content: space-between; gap: 9px;
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  color: var(--ink); letter-spacing: -0.005em;
+}
+.rangebox .rv .cv { color: var(--ink-3); font-size: 9px; }
+.rangebox .rv .dr-caret { font-size: 13px; }
+.rangebox select {
+  border: 0; background: transparent; font-family: var(--mono); font-size: 13px;
+  font-weight: 600; color: var(--ink); cursor: pointer; padding: 0; outline: none;
+  -webkit-appearance: none; appearance: none;
+}
+.rangebox input[type="date"] {
+  border: 0; background: transparent; font-family: var(--mono); font-size: 12px;
+  font-weight: 600; color: var(--ink); padding: 0; outline: none; width: 96px;
+}
+
+/* ── the single date control + its popover ─────────────────────────────── */
+.dr-wrap { position: relative; }
+.dr-trigger { cursor: pointer; text-align: left; font-family: var(--font); transition: border-color .13s; }
+.dr-trigger:hover { border-color: var(--ink-3); }
+.dr-trigger.open { border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.dr-caret { margin-left: 6px; }
+
+.dr-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+  width: 372px; padding: 15px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r);
+  box-shadow: 0 14px 40px rgba(20,21,15,.16);
+}
+.dr-pop-k {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+.dr-presets { display: flex; flex-wrap: wrap; gap: 7px; }
+.dr-preset {
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink-2);
+  border-radius: var(--r-sm); padding: 8px 15px; cursor: pointer;
+  font-family: var(--font); font-size: 12.5px; font-weight: 550; transition: all .13s;
+}
+.dr-preset:hover { border-color: var(--ink-3); color: var(--ink); }
+.dr-preset.on { background: var(--accent); border-color: var(--accent-2); color: var(--accent-on); font-weight: 660; }
+
+.dr-dates { display: flex; align-items: center; gap: 10px; margin-top: 13px; }
+.dr-dates input {
+  flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel); color: var(--ink); padding: 9px 11px;
+  font-family: var(--mono); font-size: 12.5px; font-weight: 600;
+}
+.dr-dates input:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.dr-dates input:disabled { background: var(--panel-3); color: var(--ink-3); cursor: not-allowed; }
+.dr-arrow { color: var(--ink-3); font-size: 12px; flex: none; }
+.dr-hint { margin: 8px 0 0; font-size: 11px; color: var(--ink-3); }
+.dr-hint b { color: var(--ink-2); font-weight: 620; }
+
+.dr-compare {
+  margin-top: 13px; padding: 10px 12px;
+  background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r-sm);
+}
+.dr-compare-k {
+  display: block; font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+.dr-compare-v {
+  display: block; font-family: var(--mono); font-size: 12.5px; font-weight: 650;
+  color: var(--ink); margin-top: 4px;
+}
+.dr-compare-n { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 3px; }
+.dr-compare-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* auto / custom switch for the comparison window */
+.dr-modes { display: inline-flex; background: var(--panel-3); border-radius: var(--r-pill); padding: 2px; }
+.dr-modes button {
+  border: 0; background: transparent; cursor: pointer; font-family: var(--font);
+  font-size: 10.5px; font-weight: 620; color: var(--ink-3);
+  padding: 3.5px 11px; border-radius: var(--r-pill); transition: all .13s;
+}
+.dr-modes button:hover { color: var(--ink-2); }
+.dr-modes button.on { background: var(--accent); color: var(--accent-on); }
+
+.dr-warn {
+  margin: 8px 0 0; font-size: 10.5px; line-height: 1.45;
+  color: #7A5A16; background: var(--warn-soft);
+  border: 1px solid #F2E3BC; border-radius: 6px; padding: 6px 9px;
+}
+
+.dr-done {
+  width: 100%; margin-top: 13px; padding: 10px;
+  background: var(--accent); border: 1px solid var(--accent-2); color: var(--accent-on);
+  border-radius: var(--r-sm); cursor: pointer;
+  font-family: var(--font); font-size: 13px; font-weight: 660; transition: filter .13s;
+}
+.dr-done:hover { filter: brightness(1.05); }
+
+/* data-freshness footnote inside the Time Period popover */
+.dr-foot {
+  margin: 10px 0 0; padding-top: 9px; border-top: 1px solid var(--line-2);
+  font-size: 10.5px; line-height: 1.45; color: var(--ink-3);
+}
+.dr-foot b { color: var(--ink-2); font-weight: 620; }
+
+/* the comparison popover is a touch shorter — it has no preset row */
+.dr-pop-cmp { width: 336px; }
+
+/* Squared-off icon button (radius 9, not a circle) — Adsight pairs these with
+   the 11px date pills so the header reads as one family of rounded rectangles
+   rather than pills next to circles. */
+.roundbtn {
+  width: 36px; height: 36px; flex: none; border-radius: var(--r-sm);
+  border: 1px solid var(--line-2); background: #fff; color: var(--ink-2);
+  cursor: pointer; display: grid; place-items: center; font-size: 14px;
+  transition: all .13s;
+}
+.roundbtn:hover { background: var(--panel-3); color: var(--ink); border-color: var(--ink-3); }
+.byline {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3);
+  white-space: nowrap; max-width: 90px; text-align: right; line-height: 1.3;
+}
+
+/* ── numbered section header ───────────────────────────────────────────── */
+.nsec { display: flex; align-items: flex-start; gap: 13px; margin: 30px 0 14px; }
+.nsec:first-child { margin-top: 4px; }
+/* The number is GOLD, not grey — it is the one place Adsight lets the accent
+   into running text, and it is what turns a heading into a numbered chapter.
+   Deviation: Adsight uses the bright accent here, which measures 1.6:1 on
+   white and is effectively invisible at 10px. This uses the dark gold
+   (4.85:1) instead — same gold reading, actually legible. */
+.nsec .num {
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  color: var(--accent-ink); padding-top: 8px; flex: none;
+  letter-spacing: .1em; font-variant-numeric: tabular-nums;
+}
+.nsec .txt h2 {
+  margin: 0; font-family: var(--display); font-size: 22px; font-weight: 700;
+  letter-spacing: -0.02em; line-height: 1.1; color: var(--ink);
+}
+.nsec .txt p {
+  margin: 3px 0 0; font-family: var(--mono); font-size: 10px;
+  color: var(--ink-3); letter-spacing: .03em;
+}
+.nsec .spacer { flex: 1; }
+.nsec .tools { display: inline-flex; align-items: center; gap: 8px; padding-top: 4px; }
+
+/* ── insight card: semantic left border + ▲/▼ label ────────────────────── */
+.insightrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
+.icallout {
+  border: 1px solid var(--line); border-left: 3px solid var(--g4);
+  border-radius: var(--r-sm); background: var(--panel); padding: 13px 16px;
+}
+.icallout.win   { border-left-color: var(--up); }
+.icallout.watch { border-left-color: var(--down); }
+.icallout .ilbl {
+  font-family: var(--mono); font-size: 9px; font-weight: 700;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.icallout.win   .ilbl { color: var(--up); }
+.icallout.watch .ilbl { color: var(--down); }
+.icallout p { margin: 8px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--ink); }
+.icallout p b { font-weight: 650; }
+
+/* ── KPI card with an inline delta pill ────────────────────────────────── */
+.kstrip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+/* Same two-row anatomy as .kpi, so the two card families read as one. */
+.kcard {
+  border: 1px solid var(--card-line); border-radius: var(--r-card);
+  background: var(--panel); padding: 15px 17px;
+  display: flex; flex-direction: column; min-width: 0;
+}
+.kcard .kl {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2);
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.kcard .krow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 11px; }
+.kcard .kv {
+  font-size: 23px; font-weight: 700; letter-spacing: -0.04em; color: var(--ink);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.kpill {
+  font-family: var(--mono); font-size: 9.5px; font-weight: 700;
+  padding: 3px 7px; border-radius: 5px; white-space: nowrap;
+  font-variant-numeric: tabular-nums; flex: none;
+}
+.kpill.up   { color: var(--up);   background: var(--up-soft); }
+.kpill.down { color: var(--down); background: var(--down-soft); }
+.kpill.flat { color: var(--ink-3); background: var(--panel-3); }
+.kcard .kf { font-family: var(--mono); font-size: 9.5px; color: var(--ink-3); margin-top: 7px; display: block; }
+
+/* ── metric chip row for chart controls ───────────────────────────────── */
+.mchips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.mchip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink-2);
+  border-radius: var(--r-pill); padding: 5.5px 13px; cursor: pointer;
+  font-family: var(--font); font-size: 11.5px; font-weight: 550; transition: all .13s;
+}
+.mchip:hover { border-color: var(--ink-3); color: var(--ink); }
+.mchip.on { border-color: var(--accent-2); background: var(--accent-soft); color: var(--ink); font-weight: 640; }
+.mchip .md { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+
+/* ── floating ask affordance ───────────────────────────────────────────── */
+.askfab {
+  position: fixed; right: 22px; bottom: 22px; z-index: 40;
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: var(--accent-on); border: 1px solid var(--accent-2);
+  border-radius: var(--r-pill); padding: 11px 19px; cursor: pointer;
+  font-family: var(--font); font-size: 13px; font-weight: 650;
+  box-shadow: 0 6px 20px rgba(20,21,15,.18); transition: transform .13s, box-shadow .13s;
+}
+.askfab:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(20,21,15,.24); }
+
+/* ── freshness footnote — provenance, not headline ─────────────────────────
+   Collapsed to a single summary line by default; the full table is dense so
+   that even expanded it reads as a footnote rather than a section. ─────── */
+.fresh {
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel); overflow: hidden;
+}
+.fresh-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 13px; border: 0; background: transparent; cursor: pointer;
+  font-family: var(--font); text-align: left; color: var(--ink-2);
+  transition: background .13s;
+}
+.fresh-head:hover { background: var(--panel-2); }
+.fresh-k {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3); flex: none;
+}
+.fresh-sum { flex: 1; font-size: 11.5px; color: var(--ink-2); }
+.fresh-sum b { font-weight: 640; color: var(--ink); }
+.fresh-chev { color: var(--ink-3); font-size: 10px; flex: none; }
+
+/* dense table used inside the footnote */
+.tbl.compact { font-size: 11px; }
+.tbl.compact th {
+  font-family: var(--mono); font-size: 8.5px; letter-spacing: .08em;
+  padding: 5px 13px; text-transform: uppercase;
+}
+.tbl.compact td { padding: 4.5px 13px; }
+.tbl.compact .ch { gap: 6px; font-weight: 520; }
+.tbl.compact .ch img, .tbl.compact .ch svg { width: 14px; height: 14px; }
+.tbl.compact .delta { font-size: 10px; padding: 1px 6px; }
+
+/* ── rail footer credit ────────────────────────────────────────────────── */
+.railcredit {
+  font-family: var(--mono); font-size: 8.5px; letter-spacing: .07em;
+  color: #6E6E69; flex: 1; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* mono axis ticks, matching the reference's charts */
+.recharts-cartesian-axis-tick text { font-family: var(--mono); font-size: 9.5px; }
+
+@media (max-width: 1280px) { .kstrip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1100px) { .insightrow { grid-template-columns: 1fr; } .kstrip { grid-template-columns: repeat(2, 1fr); } }

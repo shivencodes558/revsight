@@ -1,0 +1,350 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   styles-secondary.css — Secondary Sales Trend Analysis.
+   Stacked trend panels, the logo/dropdown filter bar, gross-to-net and
+   mix/rate bars.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── stacked trend panels (shared X axis) ───────────────────────────────── */
+.st-wrap { display: flex; flex-direction: column; gap: 2px; }
+.st-panel + .st-panel { border-top: 1px dashed var(--line); padding-top: 6px; }
+.st-cap {
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 9px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2);
+  margin: 0 0 2px 2px;
+}
+.st-cap i { font-style: normal; color: var(--ink-4); letter-spacing: .04em; }
+.st-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+
+/* ── filter bar ─────────────────────────────────────────────────────────── */
+.ss-filters {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 26px;
+  padding: 13px 16px; margin-bottom: 14px;
+  background: var(--panel); border: 1px solid var(--card-line); border-radius: var(--r-card);
+}
+.fb-block { position: relative; min-width: 0; }
+/* Channels take a full row of their own: 14 logos fit on one line at desktop
+   widths, and sharing the row with the dropdowns forced them to wrap into a
+   ragged block with dead space beside it. */
+.fb-chan { flex: 1 1 100%; }
+.fb-drops { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.fb-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; align-self: flex-end; padding-bottom: 2px; }
+
+.fb-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.fb-k {
+  font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+.fb-hint { font-family: var(--mono); font-size: 8.5px; color: var(--ink-4); letter-spacing: .04em; }
+.fb-clear {
+  border: 0; background: none; cursor: pointer; padding: 0;
+  font-family: var(--mono); font-size: 8.5px; color: var(--accent-ink);
+  letter-spacing: .04em; text-decoration: underline;
+}
+
+/* ── channel logo buttons ───────────────────────────────────────────────── */
+.fb-icons { display: flex; flex-wrap: wrap; gap: 4px; }
+.fb-icon {
+  border: 0; background: none; padding: 3px 4px 2px; cursor: pointer;
+  border-radius: 8px; width: 52px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: background .13s, opacity .15s;
+}
+.fb-icon:hover { background: var(--panel-2); }
+.fb-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* The artwork IS the tile — the assets are opaque brand squares — so it is
+   clipped to a radius with no border, as in the rail. `contain`, not `cover`:
+   Tata Cliq's asset is a 2.31:1 wordmark and cover crops it to "TATA CL".
+   For the square assets the two are identical. */
+.fb-icon-art {
+  position: relative; width: 28px; height: 28px; border-radius: 7px;
+  overflow: hidden; display: block; flex: none; background: #fff;
+  transition: transform .15s, box-shadow .15s;
+}
+.fb-icon-art img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.fb-icon-init {
+  display: grid; place-items: center; width: 100%; height: 100%;
+  background: var(--panel-3); color: var(--ink-3);
+  font-size: 9px; font-weight: 800; letter-spacing: .02em;
+}
+.fb-icon:hover .fb-icon-art { transform: translateY(-1px); }
+.fb-icon.on .fb-icon-art {
+  overflow: visible;
+  box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--accent);
+}
+.fb-icon.on .fb-icon-art img { border-radius: 7px; }
+.fb-icon-tick {
+  position: absolute; top: -4px; right: -4px; z-index: 2;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-on);
+  border: 1.5px solid var(--panel);
+  font-size: 7px; font-weight: 900; line-height: 1;
+  display: grid; place-items: center;
+}
+.fb-icon-lbl {
+  font-size: 8.5px; font-weight: 550; color: var(--ink-3); line-height: 1.1;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fb-icon.on .fb-icon-lbl { color: var(--ink); font-weight: 680; }
+/* Only dim once a subset is in force — with nothing picked, everything is in. */
+.fb-icon.dim { opacity: .42; }
+.fb-icon.dim:hover { opacity: 1; }
+
+/* ── dropdown trigger ───────────────────────────────────────────────────── */
+.fb-trigger {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 9px;
+  min-width: 138px; max-width: 210px;
+  border: 1px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: 8px; padding: 7px 10px; cursor: pointer;
+  font-family: var(--font); font-size: 11.5px; font-weight: 520;
+  transition: all .13s;
+}
+.fb-trigger:hover { border-color: var(--ink-3); }
+.fb-trigger.open { border-color: var(--accent-2); box-shadow: 0 0 0 3px var(--accent-soft); }
+.fb-trigger.active { border-color: var(--accent-2); background: var(--accent-soft); font-weight: 620; }
+.fb-trigger-v { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-caret { color: var(--ink-3); font-size: 10px; flex: none; }
+
+/* ── dropdown popover ───────────────────────────────────────────────────── */
+.fb-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 55;
+  width: 250px; padding: 9px;
+  background: #fff; border: 1px solid var(--line-2); border-radius: 11px;
+  box-shadow: 0 14px 40px rgba(20,21,15,.16);
+}
+.fb-search {
+  width: 100%; padding: 6px 9px; margin-bottom: 7px;
+  border: 1px solid var(--line); border-radius: 7px;
+  background: var(--panel-2); color: var(--ink);
+  font-family: inherit; font-size: 11.5px;
+}
+.fb-search:focus { outline: none; border-color: var(--accent-2); background: #fff; }
+.fb-list { max-height: 244px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.fb-opt {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  border: 0; background: none; cursor: pointer; text-align: left;
+  padding: 5px 7px; border-radius: 6px;
+  font-family: var(--font); font-size: 11.5px; color: var(--ink-2);
+  transition: background .1s;
+}
+.fb-opt:hover { background: var(--panel-2); color: var(--ink); }
+.fb-opt.on { color: var(--ink); font-weight: 600; }
+.fb-box {
+  width: 14px; height: 14px; border-radius: 4px; flex: none;
+  border: 1px solid var(--line-2); background: #fff;
+  display: grid; place-items: center;
+  font-size: 8.5px; font-weight: 900; color: var(--accent-on);
+}
+.fb-opt.on .fb-box { background: var(--accent); border-color: var(--accent-2); }
+.fb-opt-l { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-none { padding: 14px 7px; text-align: center; font-size: 11px; color: var(--ink-3); }
+.fb-pop-foot {
+  display: flex; gap: 6px; margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.fb-pop-foot button {
+  flex: 1; border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--ink-2); border-radius: 6px; padding: 5px 8px; cursor: pointer;
+  font-family: var(--mono); font-size: 9px; letter-spacing: .05em;
+  text-transform: uppercase; transition: all .13s;
+}
+.fb-pop-foot button:hover:not(:disabled) { background: var(--panel-3); color: var(--ink); }
+.fb-pop-foot button:disabled { opacity: .38; cursor: default; }
+
+.ss-resetall {
+  border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--ink-2); border-radius: 7px; padding: 6px 11px; cursor: pointer;
+  font-size: 11px; font-weight: 550; white-space: nowrap; transition: all .13s;
+}
+.ss-resetall:hover { border-color: var(--down); color: var(--down); }
+.ss-loading {
+  font-family: var(--mono); font-size: 9.5px;
+  color: var(--accent-ink); letter-spacing: .06em; white-space: nowrap;
+}
+
+/* ── KPI strip ──────────────────────────────────────────────────────────── */
+.ss-kstrip { margin-bottom: 14px; }
+/* Matches .kpi-row: value left, change right, so the deltas line up down the
+   right edge of the strip and can be read as a column. */
+.ss-kv {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin-top: 9px;
+}
+.ss-kv b {
+  font-family: var(--display); font-size: 23px; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.ss-ks { display: block; margin-top: 5px; font-size: 10.5px; color: var(--ink-3); }
+
+/* ── change chip ────────────────────────────────────────────────────────── */
+.ss-chg {
+  display: inline-flex; align-items: center;
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  padding: 2px 6px; border-radius: 5px; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ss-chg.up   { color: var(--up);   background: var(--up-soft); }
+.ss-chg.down { color: var(--down); background: var(--down-soft); }
+.ss-chg.flat { color: var(--ink-4); background: var(--panel-2); }
+
+/* ── tables ─────────────────────────────────────────────────────────────── */
+.ss-tbl { width: 100%; font-size: 11.5px; }
+.ss-tbl th.r, .ss-tbl td.r { text-align: right; }
+.ss-tbl td, .ss-tbl th { white-space: nowrap; }
+.ss-tbl tr.ss-total td {
+  background: var(--accent-soft); font-weight: 660; color: var(--accent-ink);
+  border-top: 1px solid var(--line-2);
+}
+.ss-tbl tr.ss-total:hover td { background: var(--accent-soft); }
+
+/* ── scatter tooltip ────────────────────────────────────────────────────── */
+.ss-tip {
+  background: #fff; border: 1px solid var(--line-2); border-radius: 8px;
+  padding: 8px 11px; font-size: 11.5px; display: flex; flex-direction: column; gap: 2px;
+  box-shadow: 0 6px 20px rgba(20,21,15,.10);
+}
+.ss-tip b { font-size: 11.5px; margin-bottom: 2px; }
+.ss-tip span { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+/* ── fit readout under the scatter ──────────────────────────────────────── */
+.ss-readout {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.ss-readout > div { min-width: 0; }
+.ss-readout .k {
+  display: block; font-family: var(--mono); font-size: 8.5px; font-weight: 600;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--ink-3);
+}
+.ss-readout b {
+  display: block; margin-top: 4px; font-family: var(--display);
+  font-size: 18px; font-weight: 700; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.ss-readout i {
+  display: block; margin-top: 2px; font-style: normal;
+  font-size: 10.5px; line-height: 1.35; color: var(--ink-3);
+}
+
+/* ── gross-to-net bars ──────────────────────────────────────────────────── */
+.ss-g2n { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.ss-g2n-row {
+  display: grid; grid-template-columns: 1fr 2.1fr auto auto;
+  align-items: center; gap: 11px;
+}
+.ss-g2n-row .l { font-size: 11.5px; color: var(--ink-2); }
+.ss-g2n-row .b { height: 12px; border-radius: 3px; display: block; }
+.ss-g2n-row.base .b { background: var(--g4); }
+.ss-g2n-row.neg  .b { background: var(--down); }
+.ss-g2n-row.pos  .b { background: var(--up); }
+.ss-g2n-row .v {
+  font-family: var(--mono); font-size: 12px; font-weight: 650;
+  min-width: 74px; text-align: right;
+}
+.ss-g2n-row.neg .v { color: var(--down); }
+.ss-g2n-row.pos .v { color: var(--up); }
+
+/* ── mix / rate waterfall ───────────────────────────────────────────────── */
+.ss-wf { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+.ss-wf-row {
+  display: grid; grid-template-columns: 1.25fr 2fr auto;
+  align-items: center; gap: 11px;
+}
+.ss-wf-row .l { font-size: 11.5px; color: var(--ink-2); }
+.ss-wf-row .track { height: 12px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.ss-wf-row .b { display: block; height: 100%; border-radius: 3px; }
+.ss-wf-row.base .b { background: var(--g3); }
+.ss-wf-row.step.pos .b { background: var(--up); }
+.ss-wf-row.step.neg .b { background: var(--down); }
+.ss-wf-row .v {
+  font-family: var(--mono); font-size: 12px; font-weight: 650;
+  min-width: 78px; text-align: right; font-variant-numeric: tabular-nums;
+}
+.ss-wf-row.step.pos .v { color: var(--up); }
+.ss-wf-row.step.neg .v { color: var(--down); }
+.ss-wf-row.base { font-weight: 600; }
+.ss-wf-row.base .l { color: var(--ink); font-weight: 600; }
+
+/* ── SKU movers ─────────────────────────────────────────────────────────── */
+.ss-movers { display: flex; flex-direction: column; }
+.ss-mover {
+  display: grid; grid-template-columns: 1fr auto auto auto;
+  align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--line-2);
+}
+.ss-mover:last-child { border-bottom: none; }
+.ss-mover .n { min-width: 0; }
+.ss-mover .n b {
+  display: block; font-size: 11.5px; font-weight: 570; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ss-mover .n i {
+  font-style: normal; font-family: var(--mono); font-size: 9px;
+  color: var(--ink-3); letter-spacing: .03em;
+}
+.ss-mover .d {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+  white-space: nowrap;
+}
+.ss-mover .d b { color: var(--ink); font-weight: 650; }
+
+/* ── feed freshness ─────────────────────────────────────────────────────── */
+.ss-fresh { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 8px; }
+.ss-fresh-row {
+  display: grid; grid-template-columns: 1fr auto; align-items: baseline;
+  gap: 4px 9px; padding: 8px 11px;
+  border: 1px solid var(--line); border-left: 3px solid var(--g4);
+  border-radius: 0 7px 7px 0; background: var(--panel-2);
+}
+.ss-fresh-row.ok   { border-left-color: var(--up); }
+.ss-fresh-row.warn { border-left-color: var(--warn); }
+.ss-fresh-row.bad  { border-left-color: var(--down); }
+.ss-fresh-row .c { font-size: 11.5px; font-weight: 560; color: var(--ink); }
+.ss-fresh-row .d { font-family: var(--mono); font-size: 10px; color: var(--ink-3); }
+.ss-fresh-row .l {
+  grid-column: 1 / -1; font-family: var(--mono); font-size: 9px;
+  letter-spacing: .05em; color: var(--ink-3);
+}
+.ss-fresh-row.warn .l { color: var(--warn); }
+.ss-fresh-row.bad  .l { color: var(--down); font-weight: 600; }
+
+/* ── shared footnote ────────────────────────────────────────────────────── */
+.ss-foot {
+  margin: 11px 0 0; font-size: 10.5px; line-height: 1.5; color: var(--ink-3);
+}
+.ss-foot b { color: var(--ink-2); font-weight: 620; }
+.ss-legend { margin-top: 10px; }
+.ss-legend b { color: var(--ink); font-weight: 640; }
+
+@media (max-width: 1100px) {
+  .ss-readout { grid-template-columns: 1fr; }
+
+  .ss-g2n-row, .ss-wf-row { grid-template-columns: 1fr auto; }
+  .ss-g2n-row .b, .ss-wf-row .track { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   GoKwik funnel — each step as a share of the one above it.
+   ═══════════════════════════════════════════════════════════════════════ */
+.gk-funnel { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+.gk-step {
+  display: grid; grid-template-columns: 96px 1fr 84px 148px;
+  align-items: center; gap: 12px;
+}
+.gk-step .l { font-size: 12px; font-weight: 550; color: var(--ink-2); }
+.gk-step .track { height: 16px; background: var(--panel-2); border-radius: 3px; overflow: hidden; }
+.gk-step .b { display: block; height: 100%; border-radius: 3px; transition: width .3s; }
+.gk-step .v {
+  text-align: right; font-family: var(--mono); font-size: 11.5px;
+  font-weight: 650; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.gk-step .r { font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+.gk-step .r b {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 700; color: var(--ink);
+}
+.gk-step .r i { font-style: normal; }
+
+@media (max-width: 1100px) {
+  .gk-step { grid-template-columns: 76px 1fr auto; }
+  .gk-step .r { grid-column: 1 / -1; text-align: right; }
+}
