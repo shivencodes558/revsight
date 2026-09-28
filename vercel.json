@@ -16,6 +16,7 @@
     { "source": "/api/adspend", "destination": "/api/mkt-daily?route=adspend" },
     { "source": "/api/brand-city", "destination": "/api/mkt-daily?route=brand-city" },
     { "source": "/api/brand-share", "destination": "/api/mkt-daily?route=brand-share" },
+    { "source": "/api/channel-revenue", "destination": "/api/mkt-daily?route=channel-revenue" },
 
     { "source": "/api/mp-wbr", "destination": "/api/wbr?route=mp-wbr" },
     { "source": "/api/mp-wbr-channel", "destination": "/api/wbr?route=mp-wbr-channel" },

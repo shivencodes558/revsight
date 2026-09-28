@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LOGOS } from '../logos.js';
+import { LOGOS, LOGO_DECON } from '../logos.js';
 
 // ── Marketplace channels, grouped by the same `channel_group` the warehouse
 //    already uses (Q-Commerce vs Marketplace) rather than an invented taxonomy.
@@ -103,7 +103,7 @@ export default function Sidebar({ view, setView, collapsed, setCollapsed, user }
   return (
     <div className="rail">
       <div className="rail-top">
-        <div className="rail-mark">R</div>
+        <div className="rail-mark"><img src={LOGO_DECON} alt="Deconstruct" /></div>
         {!collapsed && <div className="rail-name">Revsight<small>Deconstruct · BI</small></div>}
       </div>
 

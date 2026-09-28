@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell,
 } from 'recharts';
 import { METRICS, inRange, trendByDay, trendByMonth, byChannel, byGroup, pop } from '../lib/metrics.js';
 import { inrShort, countShort, pct, shortDate, monthLabel, longDate } from '../lib/format.js';
+import { getJSON } from '../lib/api.js';
 import { Kpi, Delta } from '../components/ui.jsx';
 import { Sparkline, Heatmap, Rank, ChannelLogo } from '../components/viz.jsx';
 
@@ -54,6 +55,41 @@ export default function CrossChannel({ data, cube, cubeLoading, meta, from, to, 
     () => [...channels].filter(c => c.deltaPct != null && c.value > 0).sort((a, b) => a.deltaPct - b.deltaPct)[0],
     [channels]
   );
+
+  // ── "Where revenue comes from" — primary NET revenue vs prorated target ──
+  // Independent of the page's MRP/SP/Volume toggle above: this leaderboard is
+  // always REVENUE (₹), because "where revenue comes from" ranked by unit
+  // count doesn't mean anything. Source is PRIMARY_SALES (the same table the
+  // Daily Business Report's D-1/MTD figures come from), joined to the same
+  // gs_primary_targets sheet, prorated across the selected window.
+  const [rev, setRev] = useState(null);
+  const revReqId = useRef(0);
+  useEffect(() => {
+    if (!from || !to || !prevFrom || !prevTo) return;
+    const my = ++revReqId.current;
+    getJSON('/channel-revenue', { from, to, prevFrom, prevTo })
+      .then(r => { if (my === revReqId.current) setRev(r.rows); })
+      .catch(() => { if (my === revReqId.current) setRev([]); });
+  }, [from, to, prevFrom, prevTo]);
+
+  const revLeaderboard = useMemo(() => {
+    if (!rev) return null;
+    const byName = new Map(rev.map(r => [r.channel, r]));
+    return channels
+      .map(c => {
+        const r = byName.get(c.channel);
+        if (!r || r.revenue <= 0) return null;
+        const hasTarget = r.target != null && r.target > 0;
+        return {
+          channel: c.channel, group: c.group, spark: c.spark,
+          revenue: r.revenue,
+          achievementPct: hasTarget ? (r.revenue / r.target) * 100 : null,
+          deltaPct: r.prevRevenue > 0 ? ((r.revenue - r.prevRevenue) / r.prevRevenue) * 100 : null,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [rev, channels]);
 
   // ── trend (cur vs prior overlay) ──
   const spanDays = nDays;
@@ -152,33 +188,70 @@ export default function CrossChannel({ data, cube, cubeLoading, meta, from, to, 
              sub={attention ? 'slowest trend of any channel' : 'no laggards'} />
       </div>
 
-      {/* ── WHERE REVENUE COMES FROM ── */}
+      {/* ── WHERE REVENUE COMES FROM ──
+          Always Revenue (₹), regardless of the MRP/SP/Volume toggle above —
+          "where revenue comes from" ranked by unit count wouldn't mean
+          anything. Basis is primary (sell-in) NET revenue, the same figure
+          the Daily Business Report's D-1/MTD cards use, so this ties to
+          that tab rather than to the MRP/SP numbers shown elsewhere on this
+          page. ── */}
       <div className="section rise d1">
         <h2>Where revenue comes from</h2>
-        <span className="note">{channels.filter(c => c.value > 0).length} active channels · ranked by {M.label.toLowerCase()}</span>
+        <span className="note">
+          {revLeaderboard ? `${revLeaderboard.length} active channels` : 'loading…'} · Revenue (net, primary/sell-in basis)
+        </span>
       </div>
       <div className="grid-2 rise d1">
         <div className="card">
+          {!revLeaderboard ? (
+            <div className="empty" style={{ padding: 24 }}>Loading revenue vs target…</div>
+          ) : (
           <table className="lb">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Channel</th>
+                <th>Trend</th>
+                <th>Revenue</th>
+                <th title={`Target is the monthly sheet figure prorated across ${longDate(from)} → ${longDate(to)}`}>
+                  Target Achieved
+                </th>
+                <th title={`This channel's own revenue vs the compare window (${longDate(prevFrom)} → ${longDate(prevTo)})`}>
+                  vs Compare
+                </th>
+              </tr>
+            </thead>
             <tbody>
-              {channels.filter(c => c.value > 0).map((c, i) => (
-                <tr key={c.channel}>
-                  <td style={{ width: 30 }}><Rank n={i + 1} /></td>
-                  <td>
-                    <span className="ch"><ChannelLogo channel={c.channel} color={colorOf(c.channel)} />{c.channel}</span>
-                    <div style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 1, marginLeft: 30 }}>{c.group}</div>
-                  </td>
-                  <td style={{ width: 104 }}><Sparkline data={c.spark} color={colorOf(c.channel)} width={96} height={26} /></td>
-                  <td className="tnum vbar" style={{ width: 130 }}>
-                    <strong>{fmt(c.value)}</strong>
-                    <div className="track"><div className="fill" style={{ width: pct(c.share), background: colorOf(c.channel) }} /></div>
-                  </td>
-                  <td className="tnum" style={{ width: 60, textAlign: 'right', color: 'var(--ink-3)', fontSize: 12 }}>{pct(c.share)}</td>
-                  <td style={{ width: 84, textAlign: 'right' }}><Delta value={c.deltaPct} /></td>
-                </tr>
-              ))}
+              {revLeaderboard.map((c, i) => {
+                const hasTarget = c.achievementPct != null;
+                const achClamped = hasTarget ? Math.min(c.achievementPct, 100) : 0;
+                const achColor = !hasTarget ? 'var(--ink-4)' : c.achievementPct >= 100 ? 'var(--up)' : c.achievementPct >= 70 ? 'var(--warn)' : 'var(--down)';
+                const deltaTitle = c.deltaPct == null ? undefined
+                  : c.deltaPct > 0 ? 'Growth vs the compare window' : c.deltaPct < 0 ? 'Degrowth vs the compare window' : 'Flat vs the compare window';
+                return (
+                  <tr key={c.channel}>
+                    <td style={{ width: 30 }}><Rank n={i + 1} /></td>
+                    <td>
+                      <span className="ch"><ChannelLogo channel={c.channel} color={colorOf(c.channel)} />{c.channel}</span>
+                      <div style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 1, marginLeft: 30 }}>{c.group}</div>
+                    </td>
+                    <td style={{ width: 104 }}><Sparkline data={c.spark} color={colorOf(c.channel)} width={96} height={26} /></td>
+                    <td className="tnum" style={{ width: 84, textAlign: 'right', fontWeight: 650 }}>{inrShort(c.revenue)}</td>
+                    <td className="tnum vbar" style={{ width: 130 }}>
+                      <div className="track" title={hasTarget ? `${pct(c.achievementPct)} of target` : 'No target set for this channel'}>
+                        <div className="fill" style={{ width: pct(achClamped), background: achColor }} />
+                      </div>
+                      <span style={{ color: hasTarget ? achColor : 'var(--ink-4)', fontSize: 12, fontWeight: 620 }}>
+                        {hasTarget ? pct(c.achievementPct) : 'no target'}
+                      </span>
+                    </td>
+                    <td style={{ width: 84, textAlign: 'right' }} title={deltaTitle}><Delta value={c.deltaPct} /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          )}
         </div>
 
         <div className="card">

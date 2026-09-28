@@ -17,7 +17,7 @@ import { fetchSkuMatrix } from './api/_sku_matrix.js';
 import { fetchSecondarySales, fetchSecondaryFilters } from './api/_secondary_sales.js';
 import { fetchCitySales, fetchCityFilters } from './api/_city_sales.js';
 import { fetchGokwik, fetchGokwikFilters } from './api/_gokwik.js';
-import { fetchOverall, fetchChannelDetail, fetchCube, runQuery, fetchPrimaryD1, fetchPrimaryMTD, fetchPrimaryFreshness, fetchPrimaryTargets, PRIMARY_EXCLUDE_STATUSES, fetchAdsAll, fetchSalesSnapAll, fetchMktFreshness, ADS_DATE_OFFSET, fetchAdSpendRange, fetchWebsiteDaily, fetchWebsiteFreshness, fetchBrandShare, fetchBrandCityShare } from './api/_snowflake.js';
+import { fetchOverall, fetchChannelDetail, fetchCube, runQuery, fetchPrimaryD1, fetchPrimaryMTD, fetchPrimaryFreshness, fetchPrimaryTargets, PRIMARY_EXCLUDE_STATUSES, fetchAdsAll, fetchSalesSnapAll, fetchMktFreshness, ADS_DATE_OFFSET, fetchAdSpendRange, fetchWebsiteDaily, fetchWebsiteFreshness, fetchBrandShare, fetchBrandCityShare, fetchPrimaryChannelTargets } from './api/_snowflake.js';
 
 const _norm = x => String(x||'').trim().toLowerCase();
 function buildMarketplace(ads, sales, freshness, date, targets) {
@@ -234,6 +234,17 @@ app.get('/api/brand-share', async (req, res) => {
     res.json({ ok: true, ...data });
   } catch (err) {
     console.error('[/api/brand-share]', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/channel-revenue', async (req, res) => {
+  try {
+    const { from, to, prevFrom, prevTo } = req.query;
+    const rows = await fetchPrimaryChannelTargets(from, to, prevFrom, prevTo);
+    res.json({ ok: true, rows });
+  } catch (err) {
+    console.error('[/api/channel-revenue]', err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
 });

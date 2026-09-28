@@ -1,11 +1,12 @@
-// Grouped function: daily, marketplace, adspend, brand-city, brand-share.
+// Grouped function: daily, marketplace, adspend, brand-city, brand-share,
+// channel-revenue.
 // See api/_dispatch.js for why these routes share one file, and
 // vercel.json for the /api/<name> → /api/mkt-daily?route=<name> rewrites.
 import { router } from './_dispatch.js';
 import {
   fetchPrimaryD1, fetchPrimaryMTD, fetchPrimaryFreshness, fetchPrimaryTargets, PRIMARY_EXCLUDE_STATUSES,
   fetchAdsAll, fetchSalesSnapAll, fetchMktFreshness, ADS_DATE_OFFSET,
-  fetchAdSpendRange, fetchBrandCityShare, fetchBrandShare,
+  fetchAdSpendRange, fetchBrandCityShare, fetchBrandShare, fetchPrimaryChannelTargets,
 } from './_snowflake.js';
 
 // case-insensitive channel merge (ads 'Swiggy' vs sales 'Swiggy', etc.)
@@ -97,5 +98,15 @@ export default router({
   'brand-share': async (req, res) => {
     const data = await fetchBrandShare();
     res.status(200).json({ ok: true, ...data });
+  },
+
+  // GET /api/channel-revenue?from=&to=&prevFrom=&prevTo=
+  // Per-channel primary (sell-in) NET revenue for the window, plus its
+  // monthly target prorated across that same window. Powers the "Where
+  // revenue comes from" achievement-vs-target bar on the All Channels tab.
+  'channel-revenue': async (req, res, q) => {
+    const { from, to, prevFrom, prevTo } = q;
+    const rows = await fetchPrimaryChannelTargets(from, to, prevFrom, prevTo);
+    res.status(200).json({ ok: true, rows });
   },
 });

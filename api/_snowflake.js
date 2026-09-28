@@ -625,8 +625,81 @@ async function fetchPrimaryTargets(ym) {
   }; });
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+//  Per-channel primary (sell-in) NET revenue for an arbitrary window, vs a
+//  target prorated across that same window — powers the "Where revenue
+//  comes from" leaderboard's achievement bar on the All Channels tab.
+//
+//  Target proration mirrors _marketplace_wbr.js's target_prorated CTE
+//  (SUM(net_target / month_days * overlapping_days), summed across every
+//  month the window touches, including a month boundary).
+//
+//  gs_primary_targets."channel" already uses the SAME raw names as
+//  PRIMARY_SALES.channel_name for panel-sourced channels — e.g. both say
+//  "Blinkit (P)", "Nykaa (P)", "Zepto (P)", "Instamart (P)" — so this joins
+//  on an EXACT match, no remapping needed (verified against a live probe
+//  query: every one of those channels carries real, non-zero net revenue
+//  here). The " (P)" suffix is stripped only in the JS return value, so the
+//  caller can match it against the unsuffixed names /api/overall uses.
+// ─────────────────────────────────────────────────────────────────────────
+async function fetchPrimaryChannelTargets(from, to, prevFrom, prevTo) {
+  for (const d of [from, to, prevFrom, prevTo]) {
+    if (!YMD_RX.test(String(d))) throw new Error('Invalid date');
+  }
+  const sql = `
+    WITH date_windows AS (
+      SELECT TO_DATE(?) AS sel_start, TO_DATE(?) AS sel_end,
+             TO_DATE(?) AS prev_start, TO_DATE(?) AS prev_end
+    ),
+    ${primarySrcSQL(PRIMARY_VIEWS.snapshot)},
+    agg AS (
+      SELECT ch, grp,
+        SUM(CASE WHEN d BETWEEN (SELECT sel_start FROM date_windows) AND (SELECT sel_end FROM date_windows)
+                 THEN net ELSE 0 END) AS sel_net,
+        SUM(CASE WHEN d BETWEEN (SELECT prev_start FROM date_windows) AND (SELECT prev_end FROM date_windows)
+                 THEN net ELSE 0 END) AS prev_net
+      FROM src
+      GROUP BY ch, grp
+    ),
+    monthly_targets AS (
+      SELECT "channel" AS ch, TO_DATE("month", 'YYYY-MM') AS month, "net_target",
+             DAY(LAST_DAY(TO_DATE("month", 'YYYY-MM'))) AS month_days
+      FROM deconstruct_dc.datachannel.gs_primary_targets
+    ),
+    target_prorated AS (
+      SELECT ch,
+        SUM("net_target" / month_days *
+            (DATEDIFF(day, GREATEST(month, (SELECT sel_start FROM date_windows)),
+                           LEAST(LAST_DAY(month), (SELECT sel_end FROM date_windows))) + 1)
+        ) AS sel_target
+      FROM monthly_targets
+      WHERE month BETWEEN DATE_TRUNC('month', (SELECT sel_start FROM date_windows))
+                      AND DATE_TRUNC('month', (SELECT sel_end FROM date_windows))
+      GROUP BY ch
+    )
+    SELECT a.ch, a.grp, a.sel_net, a.prev_net, t.sel_target
+    FROM agg a
+    LEFT JOIN target_prorated t ON t.ch = a.ch
+    ORDER BY a.sel_net DESC
+  `;
+  const raw = await runQuery(sql, [from, to, prevFrom, prevTo]);
+  return raw.map(r => {
+    const g = makeGetter(r);
+    const rawChannel = strv(g('ch'));
+    return {
+      channel: rawChannel.replace(/\s*\(P\)$/, ''),   // display/join key, e.g. "Blinkit (P)" → "Blinkit"
+      rawChannel,
+      group: strv(g('grp')),
+      revenue: num(g('sel_net')),
+      prevRevenue: num(g('prev_net')),
+      target: g('sel_target') == null ? null : num(g('sel_target')),
+    };
+  });
+}
+
 export {
   fetchPrimaryD1, fetchPrimaryMTD, fetchPrimaryFreshness, fetchPrimaryTargets,
+  fetchPrimaryChannelTargets,
   PRIMARY_VIEWS, PRIMARY_EXCLUDE_STATUSES,
 };
 
