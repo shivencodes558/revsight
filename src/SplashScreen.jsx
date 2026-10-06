@@ -218,7 +218,7 @@ export default function SplashScreen({
                         }}
                       >
                         {p.src
-                          ? <img src={p.src} alt={p.id} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          ? <img src={p.src} alt={p.id} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                           : <span style={{ display: 'block', width: '100%', height: '100%', background: '#E5E7EB' }} />}
                       </motion.div>
                     ))}
