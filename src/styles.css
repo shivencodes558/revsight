@@ -1,8 +1,11 @@
 /* ───────────────────────────────────────────────────────────────────────
    Revsight — design language, aligned to Adsight.
 
-   White canvas, off-white cards, charcoal (#111827) rail, gold accent used
-   sparingly: active nav, active controls, chapter numbers, chart series.
+   White canvas, off-white cards, indigo-charcoal (#12152A) rail, indigo
+   accent used sparingly: active nav, active controls, chapter numbers,
+   chart series. (Adsight keeps the neutral charcoal rail + gold accent —
+   this app deliberately diverges in hue so the two read as siblings, not
+   duplicates, while sharing the same layout and type system.)
    Three faces with three jobs — Plus Jakarta Sans (display), Inter (body),
    JetBrains Mono (labels, dates, axes). Dense but quiet: small type,
    hairline borders, tabular numerals.
@@ -24,8 +27,8 @@
   --panel-3:       #EDEDEB;   /* recessed control track */
   --panel-up:      #FFFFFF;   /* row hover — brighter than the card it sits on */
 
-  /* charcoal rail — blue-grey #111827, not near-black */
-  --sidebar:       #111827;
+  /* indigo-charcoal rail — a dark navy, not Adsight's neutral blue-grey */
+  --sidebar:       #12152A;
   --sidebar-2:     rgba(255,255,255,.05);   /* hover */
   --sidebar-3:     rgba(255,255,255,.08);   /* active row */
   --sidebar-line:  rgba(255,255,255,.08);
@@ -46,16 +49,18 @@
   --line-2:        #DDDDD9;
   --card-line:     #ECECEA;
 
-  /* accent — gold. Drives active nav, active controls, and the chart series. */
-  --accent:        #FBD333;
-  --accent-2:      #E9BC15;
-  --accent-soft:   rgba(251,211,51,.18);
-  --accent-ink:    #8A6A00;
-  --accent-on:     #1A1500;   /* text ON the accent (Adsight YELINK) */
+  /* accent — indigo. Drives active nav, active controls, and the chart series.
+     Adsight's accent is gold; Revsight's is this indigo, so the two dashboards
+     read as distinct products at a glance while sharing one design system. */
+  --accent:        #6472FF;
+  --accent-2:      #4F46E5;
+  --accent-soft:   rgba(100,114,255,.18);
+  --accent-ink:    #3730A5;
+  --accent-on:     #FFFFFF;   /* text ON the accent — indigo is mid-bright, so white reads best */
 
   /* chart series */
-  --cgold:         #FBD333;
-  --cgold-soft:    #FBEFC4;
+  --cgold:         #6472FF;
+  --cgold-soft:    #E4E6FF;
 
   /* ink-scale for chart marks where colour should not carry meaning */
   --g1: #0A0A0A;
@@ -195,7 +200,7 @@ body {
   background: var(--accent-soft); color: var(--accent-ink);
   font-size: 8.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
 }
-.nav-item.active .nav-flag { background: rgba(251,211,51,.22); color: var(--accent); }
+.nav-item.active .nav-flag { background: rgba(100,114,255,.22); color: var(--accent); }
 
 .app.collapsed .rail-name, .app.collapsed .rail-ghead .gname,
 .app.collapsed .rail-ghead .gtoggle, .app.collapsed .nav-item span.lbl,

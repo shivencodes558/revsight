@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import SplashScreen from './SplashScreen.jsx';
-import Sidebar, { NAV, DEFAULT_VIEW, channelOf, logoFor } from './components/Sidebar.jsx';
+import Sidebar, { NAV, DEFAULT_VIEW, channelOf, logoFor, CHANNEL_FAMILIES } from './components/Sidebar.jsx';
 import { MetricToggle, KpiSkeletons, ChartSkeleton, ErrorBox } from './components/ui.jsx';
 import DateRange from './components/DateRange.jsx';
 import { OpsInsights, OpsOverview } from './components/OpsInsights.jsx';
@@ -22,6 +22,12 @@ import GokwikRetention from './views/GokwikRetention.jsx';
 import { fetchOverall, fetchCube, refreshAll, prefetch } from './lib/api.js';
 import { METRICS } from './lib/metrics.js';
 import { shiftYMD, daysBetween, todayIST, startOfMonth, endOfMonth, shiftMonth, sameSpanPrevMonth } from './dateUtils.js';
+
+// Channel families shaped for the splash screen (title + logo tiles).
+const SPLASH_GROUPS = CHANNEL_FAMILIES.map(f => ({
+  title: f.label,
+  items: f.channels.map(ch => ({ id: ch, src: logoFor(ch) })),
+}));
 
 // view-crash isolation so one broken view never takes down the shell (Adsight pattern)
 class ViewBoundary extends React.Component {
@@ -318,7 +324,7 @@ export default function App() {
 
   return (
     <>
-      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
+      {!splashDone && <SplashScreen groups={SPLASH_GROUPS} onComplete={() => setSplashDone(true)} />}
 
       <div className={'app' + (collapsed ? ' collapsed' : '')}>
         <Sidebar view={view} setView={setView} collapsed={collapsed} setCollapsed={setCollapsed}
