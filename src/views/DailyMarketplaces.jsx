@@ -22,9 +22,19 @@ const TARGET_KEY = { 'Nykaa': 'Nykaa (P)', 'Purplle': 'Purplle (P)', 'Blinkit': 
 
 const n2 = (v, d = 2) => (v == null || isNaN(v) ? null : v.toFixed(d));
 
-// MoM cell — Hex renders %_Change_MoM (mtd vs mtd_prev) with red/green fill
-function MoMCell({ cur, prev, invert = false }) {
-  if (prev == null || prev === 0 || cur == null) return <td className="mom-cell null">null</td>;
+// MoM cell — Hex renders %_Change_MoM (mtd vs mtd_prev) with red/green fill.
+// Metrics that are ALREADY a percentage (Discount %, TACOS %, CTR % …) show
+// the point change in bps instead of a relative %, exactly as Hex does —
+// e.g. Discount % 17.0%→25.0% reads "+800 bps", not "+47%".
+function MoMCell({ cur, prev, invert = false, pp = false }) {
+  if (cur == null || prev == null) return <td className="mom-cell null">null</td>;
+  if (pp) {
+    const bps = Math.round((cur - prev) * 100);
+    const good = invert ? bps < 0 : bps > 0;
+    const cls = Math.abs(bps) < 5 ? 'flat' : good ? 'pos' : 'neg';
+    return <td className={'mom-cell ' + cls}>{(bps > 0 ? '+' : '') + indianGroup(bps) + ' bps'}</td>;
+  }
+  if (prev === 0) return <td className="mom-cell null">null</td>;
   const d = ((cur - prev) / Math.abs(prev)) * 100;
   const good = invert ? d < 0 : d > 0;
   const cls = Math.abs(d) < 0.5 ? 'flat' : good ? 'pos' : 'neg';
@@ -32,7 +42,7 @@ function MoMCell({ cur, prev, invert = false }) {
 }
 
 // one metric row across the three Hex windows
-function MRow({ label, sel, mtd, pm, fmt, invert, hint }) {
+function MRow({ label, sel, mtd, pm, fmt, invert, pp, hint }) {
   const f = v => (v == null || isNaN(v) ? 'null' : fmt(v));
   return (
     <tr>
@@ -40,7 +50,7 @@ function MRow({ label, sel, mtd, pm, fmt, invert, hint }) {
       <td className="tnum">{f(sel)}</td>
       <td className="tnum">{f(mtd)}</td>
       <td className="tnum">{f(pm)}</td>
-      <MoMCell cur={mtd} prev={pm} invert={invert} />
+      <MoMCell cur={mtd} prev={pm} invert={invert} pp={pp} />
     </tr>
   );
 }
@@ -65,7 +75,8 @@ function MetricTable({ title, rows, badge }) {
 }
 
 function ChannelBlock({ r, open, onToggle }) {
-  const money = inrShort, int = v => indianGroup(Math.round(v));
+  // Full figures, not ₹35.4L/₹1.2Cr shorthand — matches the Hex export exactly.
+  const money = v => '₹' + indianGroup(Math.round(v)), int = v => indianGroup(Math.round(v));
   const salesRows = [
     <MRow key="mrp" label="MRP Sales" sel={r.sel.mrp} mtd={r.mtd.mrp} pm={r.pm.mrp} fmt={money} />,
     <MRow key="u" label="Units Sold" sel={r.sel.units} mtd={r.mtd.units} pm={r.pm.units} fmt={int} />,
@@ -73,10 +84,10 @@ function ChannelBlock({ r, open, onToggle }) {
     <MRow key="drr" label="DRR" sel={r.sel.units} mtd={r.drr} pm={null} fmt={int} hint="MTD units ÷ day of month" />,
     <MRow key="amrp" label="Avg MRP" sel={r.sel.avgMrp} mtd={r.mtd.avgMrp} pm={r.pm.avgMrp} fmt={v => '₹' + Math.round(v)} />,
     <MRow key="asp" label="ASP" sel={r.sel.asp} mtd={r.mtd.asp} pm={r.pm.asp} fmt={v => '₹' + Math.round(v)} />,
-    <MRow key="disc" label="Discount %" sel={r.sel.discount} mtd={r.mtd.discount} pm={r.pm.discount} fmt={v => n2(v, 1) + '%'} invert />,
-    <MRow key="tac" label="TACOS %" sel={r.sel.tacos} mtd={r.mtd.tacos} pm={r.pm.tacos} fmt={v => n2(v, 1) + '%'} invert />,
+    <MRow key="disc" label="Discount %" sel={r.sel.discount} mtd={r.mtd.discount} pm={r.pm.discount} fmt={v => n2(v, 1) + '%'} invert pp />,
+    <MRow key="tac" label="TACOS %" sel={r.sel.tacos} mtd={r.mtd.tacos} pm={r.pm.tacos} fmt={v => n2(v, 1) + '%'} invert pp />,
     <MRow key="org" label="Organic Sales" sel={r.sel.organic} mtd={r.mtd.organic} pm={r.pm.organic} fmt={money} />,
-    <MRow key="orgs" label="Organic Share %" sel={r.sel.organicShare} mtd={r.mtd.organicShare} pm={r.pm.organicShare} fmt={v => n2(v, 0) + '%'} />,
+    <MRow key="orgs" label="Organic Share %" sel={r.sel.organicShare} mtd={r.mtd.organicShare} pm={r.pm.organicShare} fmt={v => n2(v, 0) + '%'} pp />,
   ];
   const adsRows = [
     <MRow key="sp" label="Spends" sel={r.sel.spend} mtd={r.mtd.spend} pm={r.pm.spend} fmt={money} invert />,
@@ -87,9 +98,9 @@ function ChannelBlock({ r, open, onToggle }) {
     <MRow key="imp" label="Impressions" sel={r.sel.imp} mtd={r.mtd.imp} pm={r.pm.imp} fmt={int} />,
     <MRow key="clk" label="Clicks" sel={r.sel.clk} mtd={r.mtd.clk} pm={r.pm.clk} fmt={int} />,
     <MRow key="vw" label="Views" sel={r.sel.views} mtd={r.mtd.views} pm={r.pm.views} fmt={int} />,
-    <MRow key="ctr" label="CTR %" sel={r.sel.ctr} mtd={r.mtd.ctr} pm={r.pm.ctr} fmt={v => n2(v) + '%'} />,
-    <MRow key="cov" label="Cov %" sel={r.sel.cov} mtd={r.mtd.cov} pm={r.pm.cov} fmt={v => n2(v) + '%'} />,
-    <MRow key="acos" label="Acos %" sel={r.sel.acos} mtd={r.mtd.acos} pm={r.pm.acos} fmt={v => n2(v) + '%'} invert />,
+    <MRow key="ctr" label="CTR %" sel={r.sel.ctr} mtd={r.mtd.ctr} pm={r.pm.ctr} fmt={v => n2(v) + '%'} pp />,
+    <MRow key="cov" label="Cov %" sel={r.sel.cov} mtd={r.mtd.cov} pm={r.pm.cov} fmt={v => n2(v) + '%'} pp />,
+    <MRow key="acos" label="Acos %" sel={r.sel.acos} mtd={r.mtd.acos} pm={r.pm.acos} fmt={v => n2(v) + '%'} invert pp />,
     <MRow key="roi" label="RoI" sel={r.sel.roas} mtd={r.mtd.roas} pm={r.pm.roas} fmt={v => n2(v) + 'x'} />,
   ];
 
@@ -139,8 +150,11 @@ export default function DailyMarketplaces() {
       .then(res => {
         if (my !== reqId.current) return;
         setData(res); setLoading(false);
-        const first = (res.rows || []).slice().sort((a, b) => b.mtd.sec - a.mtd.sec)[0];
-        if (first) setOpenCh(new Set([first.channel]));
+        // Whichever channel renders first in the list opens by default —
+        // same BLOCK_ORDER the list itself is sorted by, not a ranking by sales.
+        const idx = c => { const i = BLOCK_ORDER.indexOf(c); return i < 0 ? 900 : i; };
+        const top = (res.rows || []).slice().sort((a, b) => idx(a.channel) - idx(b.channel))[0];
+        setOpenCh(new Set(top ? [top.channel] : []));
       })
       .catch(e => { if (my === reqId.current) { setError(e.message); setLoading(false); } });
   }, [date]);
@@ -166,18 +180,6 @@ export default function DailyMarketplaces() {
 
   return (
     <>
-      <div className="filterbar rise" style={{ marginTop: -4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <input className="date-in" type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="Report date" />
-          <button className="chip" onClick={() => setOpenCh(allOpen ? new Set() : new Set(rows.map(r => r.channel)))}>
-            {allOpen ? 'Collapse all' : 'Expand all'}
-          </button>
-        </div>
-        <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
-          Nykaa · Flipkart · Purplle · Amazon Now report on a D-2 basis, as in Hex
-        </span>
-      </div>
-
       <div className="banner rise">
         <span className="b-ic">◷</span>
         <span>Data shown is for the selected date (default: yesterday). Change the date and every block updates. Windows are <b>selected date</b>, <b>MTD</b>, and <b>MTD previous month</b> — matching the Hex report exactly.</span>
@@ -214,6 +216,19 @@ export default function DailyMarketplaces() {
             <p className="card-sub" style={{ marginTop: 6, marginBottom: 0 }}>
               Targets are sourced from the primary-sales target sheet; channels without a target row show secondary only.
             </p>
+          </div>
+
+          {/* ── date selector — sits right above the channel tables it drives ── */}
+          <div className="filterbar rise" style={{ marginTop: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <input className="date-in" type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="Report date" />
+              <button className="chip" onClick={() => setOpenCh(allOpen ? new Set() : new Set(rows.map(r => r.channel)))}>
+                {allOpen ? 'Collapse all' : 'Expand all'}
+              </button>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+              Nykaa · Flipkart · Purplle · Amazon Now report on a D-2 basis, as in Hex
+            </span>
           </div>
 
           {/* ── PER-CHANNEL BLOCKS ── */}
