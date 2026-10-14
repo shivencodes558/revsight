@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Cell } from 'recharts';
+import html2canvas from 'html2canvas';
 import { getJSON } from '../lib/api.js';
 import { inrShort, indianGroup, countShort, pct, longDate } from '../lib/format.js';
 import { KpiSkeletons, ErrorBox } from '../components/ui.jsx';
@@ -21,6 +22,42 @@ const logoKey = n => ({
 const TARGET_KEY = { 'Nykaa': 'Nykaa (P)', 'Purplle': 'Purplle (P)', 'Blinkit': 'Blinkit (P)', 'Zepto': 'Zepto (P)', 'Swiggy IM': 'Instamart (P)', 'Myntra SJIT': 'Myntra', 'Flipkart Minutes': 'Flipkart Minutes (P)', 'Amazon Now': 'Amazon_Now(P)' };
 
 const n2 = (v, d = 2) => (v == null || isNaN(v) ? null : v.toFixed(d));
+
+// Render a channel's report to PNG and put it on the clipboard as an image,
+// so it can be pasted straight into an email draft. Falls back to a file
+// download when the browser doesn't support clipboard image writes.
+async function copyChannelImage(node, onStatus) {
+  if (!node) return;
+  onStatus('copying');
+  let blob;
+  try {
+    const canvas = await html2canvas(node, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
+    blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) throw new Error('Could not render image');
+  } catch (e) {
+    console.error('[copy image] render failed', e);
+    onStatus('error');
+    setTimeout(() => onStatus('idle'), 1800);
+    return;
+  }
+  // Clipboard image writes need a browser that supports it AND an actual
+  // grant for this page — either can fail, so fall back to a direct
+  // download rather than leaving the button at a dead end.
+  try {
+    if (!navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard image API unavailable');
+    await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
+    onStatus('copied');
+  } catch (e) {
+    console.warn('[copy image] clipboard write failed, falling back to download', e);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `daily-report-${node.dataset.channel || 'channel'}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+    onStatus('downloaded');
+  }
+  setTimeout(() => onStatus('idle'), 1800);
+}
 
 // MoM cell — Hex renders %_Change_MoM (mtd vs mtd_prev) with red/green fill.
 // Metrics that are ALREADY a percentage (Discount %, TACOS %, CTR % …) show
@@ -74,7 +111,14 @@ function MetricTable({ title, rows, badge }) {
   );
 }
 
-function ChannelBlock({ r, open, onToggle }) {
+function ChannelBlock({ r, open, onToggle, date }) {
+  const shotRef = useRef(null);
+  const [copyState, setCopyState] = useState('idle');
+  const handleCopy = () => copyChannelImage(shotRef.current, setCopyState);
+  const copyLabel = {
+    copying: 'Copying…', copied: '✓ Copied', downloaded: '↓ Downloaded', error: "Couldn't copy",
+  }[copyState] || '⧉ Copy image';
+
   // Full figures, not ₹35.4L/₹1.2Cr shorthand — matches the Hex export exactly.
   const money = v => '₹' + indianGroup(Math.round(v)), int = v => indianGroup(Math.round(v));
   const salesRows = [
@@ -124,11 +168,25 @@ function ChannelBlock({ r, open, onToggle }) {
         </span>
       </button>
       {open && (
-        <div className="cblock-body rise">
-          <MetricTable title="Sales" rows={salesRows} />
-          {r.hasAds
-            ? <MetricTable title="Ads" rows={adsRows} badge="from ads snapshot" />
-            : <div className="empty" style={{ padding: 26 }}>No advertising data reported for {r.channel}.</div>}
+        <div className="cblock-content rise">
+          <div className="copy-toolbar">
+            <button type="button" className={'copy-img-btn' + (copyState !== 'idle' ? ' ' + copyState : '')}
+              onClick={handleCopy} disabled={copyState === 'copying'}>
+              {copyLabel}
+            </button>
+          </div>
+          <div className="cblock-shot" ref={shotRef} data-channel={r.channel}>
+            <div className="cblock-shot-title">
+              {r.channel}
+              <span className="sub">· Daily Report · {longDate(date)}</span>
+            </div>
+            <div className="cblock-body">
+              <MetricTable title="Sales" rows={salesRows} />
+              {r.hasAds
+                ? <MetricTable title="Ads" rows={adsRows} badge="from ads snapshot" />
+                : <div className="empty" style={{ padding: 26 }}>No advertising data reported for {r.channel}.</div>}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -238,7 +296,7 @@ export default function DailyMarketplaces() {
           </div>
           <div className="rise d1">
             {rows.map(r => (
-              <ChannelBlock key={r.channel} r={r} open={openCh.has(r.channel)} onToggle={() => toggle(r.channel)} />
+              <ChannelBlock key={r.channel} r={r} open={openCh.has(r.channel)} onToggle={() => toggle(r.channel)} date={date} />
             ))}
           </div>
 
