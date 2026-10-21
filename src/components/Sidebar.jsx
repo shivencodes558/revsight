@@ -27,7 +27,7 @@ export const channelOf = view =>
 // ── Navigation: three standalone entries, then three expandable sections.
 //    `kind: 'item'` renders a row; `kind: 'section'` renders a collapsible group.
 export const NAV = [
-  { kind: 'item', id: 'overview', label: 'Business Overview',    ic: '◈' },
+  { kind: 'item', id: 'overview', label: 'Business Overview',    ic: '◈', flag: 'Beta' },
   { kind: 'item', id: 'daily',    label: 'Daily Business Report', ic: '◐' },
   { kind: 'item', id: 'allch',    label: 'All Channels',          ic: '◎' },
   // Secondary (sell-out) sits beside All Channels rather than inside a
