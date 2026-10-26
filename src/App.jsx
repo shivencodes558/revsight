@@ -4,6 +4,7 @@ import Sidebar, { NAV, DEFAULT_VIEW, channelOf, logoFor, CHANNEL_FAMILIES } from
 import { MetricToggle, KpiSkeletons, ChartSkeleton, ErrorBox } from './components/ui.jsx';
 import DateRange from './components/DateRange.jsx';
 import { OpsInsights, OpsOverview } from './components/OpsInsights.jsx';
+import Assistant from './components/Assistant.jsx';
 import CrossChannel from './views/CrossChannel.jsx';
 import ChannelDeepDive from './views/ChannelDeepDive.jsx';
 import WeeklyReview from './views/WeeklyReview.jsx';
@@ -285,24 +286,6 @@ export default function App() {
     return s.size;
   }, [vRows, from, to]);
 
-  // "insights" = channels whose current-window revenue moved >10% vs the prior
-  // window. A real count of things worth looking at, not a decorative badge.
-  const insightCount = useMemo(() => {
-    if (!vRows) return 0;
-    const agg = (a, b) => {
-      const m = new Map();
-      for (const r of vRows) if (r.date >= a && r.date <= b) m.set(r.channel, (m.get(r.channel) || 0) + (r.sp || 0));
-      return m;
-    };
-    const c = agg(from, to), p = agg(prevFrom, prevTo);
-    let n = 0;
-    for (const [ch, cv] of c) {
-      const pv = p.get(ch) || 0;
-      if (pv > 0 && Math.abs((cv - pv) / pv) > 0.10) n++;
-    }
-    return n;
-  }, [vRows, from, to, prevFrom, prevTo]);
-
   // ── CSV export of the current window's channel × day rows. Kept honest: it
   //    ships the actual data behind the view, not a re-rendered summary. ──
   const onExport = useCallback(() => {
@@ -553,11 +536,7 @@ export default function App() {
             </ViewBoundary>
           </div>
 
-          {/* jumps to the auto-written narrative for the current window */}
-          <button className="askfab" onClick={() => setView('wbr-mkt')}
-            title={insightCount + ' channels moved more than 10% this window'}>
-            ✦ Ask Revsight
-          </button>
+          <Assistant rows={rows} cube={cube} from={from} to={to} prevFrom={prevFrom} prevTo={prevTo} />
         </div>
       </div>
     </>

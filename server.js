@@ -17,7 +17,7 @@ import { fetchSkuMatrix } from './api/_sku_matrix.js';
 import { fetchSecondarySales, fetchSecondaryFilters } from './api/_secondary_sales.js';
 import { fetchCitySales, fetchCityFilters } from './api/_city_sales.js';
 import { fetchGokwik, fetchGokwikFilters } from './api/_gokwik.js';
-import { fetchOverall, fetchChannelDetail, fetchCube, runQuery, fetchPrimaryD1, fetchPrimaryMTD, fetchPrimaryFreshness, fetchPrimaryTargets, PRIMARY_EXCLUDE_STATUSES, fetchAdsAll, fetchSalesSnapAll, fetchMktFreshness, ADS_DATE_OFFSET, fetchAdSpendRange, fetchWebsiteDaily, fetchWebsiteFreshness, fetchBrandShare, fetchBrandCityShare, fetchPrimaryChannelTargets } from './api/_snowflake.js';
+import { fetchOverall, fetchChannelDetail, fetchCube, runQuery, fetchPrimaryD1, fetchPrimaryMTD, fetchPrimaryFreshness, fetchPrimaryTargets, PRIMARY_EXCLUDE_STATUSES, fetchAdsAll, fetchSalesSnapAll, fetchMktFreshness, ADS_DATE_OFFSET, fetchAdSpendRange, fetchWebsiteDaily, fetchWebsiteFreshness, fetchWebsiteDOD, fetchWebsiteProductSummary, fetchWebsiteTarget, fetchBrandShare, fetchBrandCityShare, fetchPrimaryChannelTargets } from './api/_snowflake.js';
 
 const _norm = x => String(x||'').trim().toLowerCase();
 function buildMarketplace(ads, sales, freshness, date, targets) {
@@ -136,11 +136,14 @@ app.get('/api/website-daily', async (req, res) => {
   try {
     const { date } = req.query;
     if (!date) return res.status(400).json({ ok: false, error: 'Missing ?date=' });
-    const [data, freshness] = await Promise.all([
+    const [data, freshness, dod, products, targetMtd] = await Promise.all([
       fetchWebsiteDaily(date),
       fetchWebsiteFreshness().catch(() => []),
+      fetchWebsiteDOD(date).catch(() => []),
+      fetchWebsiteProductSummary(date).catch(() => []),
+      fetchWebsiteTarget(date).catch(() => null),
     ]);
-    res.json({ ok: true, ...data, freshness });
+    res.json({ ok: true, ...data, freshness, dod, products, targetMtd });
   } catch (err) {
     console.error('[/api/website-daily]', err.message);
     res.status(500).json({ ok: false, error: err.message });

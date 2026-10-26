@@ -1078,25 +1078,53 @@ async function fetchWebsiteDaily(date) {
       FROM swift_src s CROSS JOIN bounds b
       WHERE s.dt BETWEEN b.pm_start AND b.d
     ),
-    /* ── New + Repeating customers (CAC denominator) ── */
+    /* ── New + Repeating customers (CAC denominator; also feeds the
+         "Customer mix" table, split by status rather than combined). ── */
     nc_src AS (
-      SELECT DISTINCT REPLACE(order_name, '#', '') AS oid, created_date AS dt
+      SELECT DISTINCT REPLACE(order_name, '#', '') AS oid, created_date AS dt, customer_status AS status
       FROM ${WEB_NRC}
       WHERE customer_status IN (${custList})
     ),
     nc_agg AS (
       SELECT
-        COUNT(DISTINCT IFF(n.dt=b.d, n.oid, NULL)) AS cust_d,
-        COUNT(DISTINCT IFF(n.dt BETWEEN b.m_start AND b.d, n.oid, NULL)) AS cust_m,
-        COUNT(DISTINCT IFF(n.dt BETWEEN b.pm_start AND b.pm_end, n.oid, NULL)) AS cust_p
+        COUNT(DISTINCT IFF(status='New' AND n.dt=b.d, n.oid, NULL)) AS custnew_d,
+        COUNT(DISTINCT IFF(status='New' AND n.dt BETWEEN b.m_start AND b.d, n.oid, NULL)) AS custnew_m,
+        COUNT(DISTINCT IFF(status='New' AND n.dt BETWEEN b.pm_start AND b.pm_end, n.oid, NULL)) AS custnew_p,
+        COUNT(DISTINCT IFF(status='Repeating' AND n.dt=b.d, n.oid, NULL)) AS custrep_d,
+        COUNT(DISTINCT IFF(status='Repeating' AND n.dt BETWEEN b.m_start AND b.d, n.oid, NULL)) AS custrep_m,
+        COUNT(DISTINCT IFF(status='Repeating' AND n.dt BETWEEN b.pm_start AND b.pm_end, n.oid, NULL)) AS custrep_p
       FROM nc_src n CROSS JOIN bounds b
       WHERE n.dt BETWEEN b.pm_start AND b.d
+    ),
+    /* ── "GoKwik Orders/Revenue" (Performance Summary) — a NARROWER paid
+         definition than the Organic-split's swift_agg above: Hex's
+         "Website Sales, Ads, swift Orders" cell filters this one to literal
+         conversion_utm_source IN ('google','facebook') only, not the broader
+         cpc/paid-medium + snapchat/criteo/jiohotstar-source rule. Verified
+         against the Hex export: GoKwik ROAS/Conv.Rate/CPP all reconcile
+         exactly against Cost and Clicks using this narrower count. ── */
+    gokwik_src AS (
+      SELECT DISTINCT
+        REPLACE("shopify_order_name", '#', '') AS oid,
+        CAST(TRY_TO_TIMESTAMP("created_at", 'DD/MM/YYYY HH12:MI AM') AS DATE) AS dt,
+        TRY_TO_DOUBLE(TO_VARCHAR("grand_total")) AS val
+      FROM ${WEB_SWIFT}
+      WHERE LOWER(TRIM("utm_source")) IN ('google', 'facebook')
+    ),
+    gokwik_agg AS (
+      SELECT
+        SUM(IFF(s.dt=b.d, val,0)) AS gkrev_d, SUM(IFF(s.dt BETWEEN b.m_start AND b.d, val,0)) AS gkrev_m, SUM(IFF(s.dt BETWEEN b.pm_start AND b.pm_end, val,0)) AS gkrev_p,
+        COUNT(DISTINCT IFF(s.dt=b.d, s.oid, NULL)) AS gkord_d,
+        COUNT(DISTINCT IFF(s.dt BETWEEN b.m_start AND b.d, s.oid, NULL)) AS gkord_m,
+        COUNT(DISTINCT IFF(s.dt BETWEEN b.pm_start AND b.pm_end, s.oid, NULL)) AS gkord_p
+      FROM gokwik_src s CROSS JOIN bounds b
+      WHERE s.dt BETWEEN b.pm_start AND b.d
     )
     SELECT
       TO_CHAR(bounds.d,'YYYY-MM-DD') AS d, TO_CHAR(bounds.m_start,'YYYY-MM-DD') AS m_start,
       TO_CHAR(bounds.pm_start,'YYYY-MM-DD') AS pm_start, TO_CHAR(bounds.pm_end,'YYYY-MM-DD') AS pm_end,
-      web_agg.*, ads_agg.*, swift_agg.*, nc_agg.*
-    FROM web_agg CROSS JOIN ads_agg CROSS JOIN swift_agg CROSS JOIN nc_agg CROSS JOIN bounds
+      web_agg.*, ads_agg.*, swift_agg.*, nc_agg.*, gokwik_agg.*
+    FROM web_agg CROSS JOIN ads_agg CROSS JOIN swift_agg CROSS JOIN nc_agg CROSS JOIN gokwik_agg CROSS JOIN bounds
   `;
 
   const raw = await runQuery(sql, [date, date, date]);
@@ -1123,10 +1151,16 @@ async function fetchWebsiteDaily(date) {
     mimpD: N('mimp_d'), mimpM: N('mimp_m'), mimpP: N('mimp_p'),
     mclkD: N('mclk_d'), mclkM: N('mclk_m'), mclkP: N('mclk_p'),
     mspD:  N('msp_d'),  mspM:  N('msp_m'),  mspP:  N('msp_p'),
-    // swift / organic + customers
+    // swift / organic
     swrevD: N('swrev_d'), swrevM: N('swrev_m'), swrevP: N('swrev_p'),
     swordD: N('sword_d'), swordM: N('sword_m'), swordP: N('sword_p'),
-    custD: N('cust_d'),   custM: N('cust_m'),   custP: N('cust_p'),
+    // customers, split New / Repeating (custD/M/P = combined, for CAC)
+    custnewD: N('custnew_d'), custnewM: N('custnew_m'), custnewP: N('custnew_p'),
+    custrepD: N('custrep_d'), custrepM: N('custrep_m'), custrepP: N('custrep_p'),
+    custD: N('custnew_d') + N('custrep_d'), custM: N('custnew_m') + N('custrep_m'), custP: N('custnew_p') + N('custrep_p'),
+    // GoKwik (narrow google/facebook utm_source — see gokwik_src comment above)
+    gkrevD: N('gkrev_d'), gkrevM: N('gkrev_m'), gkrevP: N('gkrev_p'),
+    gkordD: N('gkord_d'), gkordM: N('gkord_m'), gkordP: N('gkord_p'),
   };
   return {
     date,
@@ -1147,8 +1181,10 @@ function buildWebsiteMetrics(w) {
     qty: w['qty' + suf], imp: w['imp' + suf], clk: w['clk' + suf], spend: w['spend' + suf],
     conv: w['conv' + suf], convval: w['convval' + suf], swrev: w['swrev' + suf],
     sword: w['sword' + suf], cust: w['cust' + suf],
+    custnew: w['custnew' + suf], custrep: w['custrep' + suf],
     gimp: w['gimp' + suf], gclk: w['gclk' + suf], gsp: w['gsp' + suf],
     mimp: w['mimp' + suf], mclk: w['mclk' + suf], msp: w['msp' + suf],
+    gkrev: w['gkrev' + suf], gkord: w['gkord' + suf],
   });
   const D = per('D'), M = per('M'), P = per('P');
   const cost = x => x.spend * GST_GROSS;
@@ -1207,15 +1243,46 @@ function buildWebsiteMetrics(w) {
     { key: 'mspend',  label: 'Meta Ad Spend',   fmt: 'inr', invert: true, sel: D.msp, mtd: M.msp, pm: P.msp },
     { key: 'cost',    label: 'Cost (incl. GST)', fmt: 'inr', invert: true, hint: 'Ad spend × 1.18',
       sel: cost(D), mtd: cost(M), pm: cost(P) },
-    { key: 'conv',    label: 'Conversions', fmt: 'int', hint: 'Platform-reported (DB) orders',
+    // GoKwik — swift orders narrowed to conversion_utm_source IN
+    // ('google','facebook'), exactly as the Hex "Website Sales, Ads, swift
+    // Orders" cell defines "GoKwik Orders/Revenue" (a narrower rule than the
+    // broad Paid/Organic split above). ROAS/Conv.Rate/CPP all reconcile
+    // exactly against this narrower count in the Hex export.
+    { key: 'gkOrders', label: 'GoKwik Orders',       fmt: 'int',   sel: D.gkord, mtd: M.gkord, pm: P.gkord },
+    { key: 'gkRevenue', label: 'GoKwik Revenue',     fmt: 'inr',   sel: D.gkrev, mtd: M.gkrev, pm: P.gkrev },
+    { key: 'gkRoas',    label: 'GoKwik ROAS',        fmt: 'x',     hint: 'GoKwik Revenue ÷ cost',
+      sel: div(D.gkrev, cost(D)), mtd: div(M.gkrev, cost(M)), pm: div(P.gkrev, cost(P)) },
+    { key: 'gkCvr',     label: 'GoKwik Conv. Rate (%)', fmt: 'pct2', hint: 'GoKwik Orders ÷ clicks',
+      sel: D.clk ? (D.gkord / D.clk) * 100 : null, mtd: M.clk ? (M.gkord / M.clk) * 100 : null, pm: P.clk ? (P.gkord / P.clk) * 100 : null },
+    { key: 'gkCpp',     label: 'GoKwik CPP',         fmt: 'rupee', invert: true, hint: 'Cost ÷ GoKwik Orders',
+      sel: div(cost(D), D.gkord), mtd: div(cost(M), M.gkord), pm: div(cost(P), P.gkord) },
+    { key: 'gkAov',     label: 'GoKwik AOV',         fmt: 'rupee', hint: 'GoKwik Revenue ÷ GoKwik Orders',
+      sel: div(D.gkrev, D.gkord), mtd: div(M.gkrev, M.gkord), pm: div(P.gkrev, P.gkord) },
+    // DB — the ad platforms' own (Facebook/Google) reported conversions,
+    // same fields as "Conversions"/"Conv. Value"/"ROAS" above, relabelled to
+    // match the Hex export's naming for this table.
+    { key: 'dbOrders', label: 'DB Orders',       fmt: 'int', hint: 'Platform-reported (DB) orders',
       sel: D.conv, mtd: M.conv, pm: P.conv },
-    { key: 'convVal', label: 'Conv. Value', fmt: 'inr', hint: 'Platform-reported (DB) revenue',
+    { key: 'dbRevenue', label: 'DB Revenue',     fmt: 'inr', hint: 'Platform-reported (DB) revenue',
       sel: D.convval, mtd: M.convval, pm: P.convval },
-    { key: 'roas',    label: 'ROAS',        fmt: 'x', hint: 'Conversion value ÷ cost',
+    { key: 'dbRoas',    label: 'DB ROAS',        fmt: 'x', hint: 'DB Revenue ÷ cost',
       sel: div(D.convval, cost(D)), mtd: div(M.convval, cost(M)), pm: div(P.convval, cost(P)) },
+    { key: 'dbCvr',     label: 'DB Conv. Rate (%)', fmt: 'pct2', hint: 'DB Orders ÷ clicks',
+      sel: D.clk ? (D.conv / D.clk) * 100 : null, mtd: M.clk ? (M.conv / M.clk) * 100 : null, pm: P.clk ? (P.conv / P.clk) * 100 : null },
+    { key: 'dbCpp',     label: 'DB CPP',         fmt: 'rupee', invert: true, hint: 'Cost ÷ DB Orders',
+      sel: div(cost(D), D.conv), mtd: div(cost(M), M.conv), pm: div(cost(P), P.conv) },
+    // trailing plain "AOV" row, as the Hex export has it — same Sec Sales ÷
+    // orders ratio as the Orders Summary's "AOV / ASP" row above.
+    { key: 'aov',       label: 'AOV',             fmt: 'rupee', hint: 'Sec Sales ÷ orders — same ratio as "AOV / ASP" above',
+      sel: div(D.sales, D.orders), mtd: div(M.sales, M.orders), pm: div(P.sales, P.orders) },
   ];
 
-  return { orderRows, perfRows };
+  const custMixRows = [
+    { key: 'new',       label: 'New',       sel: D.custnew, mtd: M.custnew, pm: P.custnew },
+    { key: 'repeating', label: 'Repeating', sel: D.custrep, mtd: M.custrep, pm: P.custrep },
+  ];
+
+  return { orderRows, perfRows, custMixRows };
 }
 
 // last-updated per source, so the report is honest about lag
@@ -1234,7 +1301,148 @@ async function fetchWebsiteFreshness() {
   return raw.map(r => { const g = makeGetter(r); return { source: strv(g('src')), lastUpdated: strv(g('lu')) }; });
 }
 
-export { fetchWebsiteDaily, buildWebsiteMetrics, fetchWebsiteFreshness };
+// ── "Website(Go Swift) DOD Revenue and Orders Summary" — trailing 30 days,
+//    split Organic vs Paid using the SAME broad classification as swift_agg
+//    above (medium cpc/paid, or source fb/facebook/google/snapchat/criteo/
+//    jiohotstar → Paid; everything else → Organic — confirmed against the
+//    Hex "Go Swift Orders Raw" cell's full CASE statement, which reduces to
+//    exactly this rule once every branch is followed through). ──
+async function fetchWebsiteDOD(date, days = 30) {
+  if (!date || !YMD_RX.test(date)) throw new Error('Invalid date');
+  const custList = WEB_CUST_STATUSES.map(s => `'${s.replace(/'/g, "''")}'`).join(', ');
+  const sql = `
+    WITH src AS (
+      SELECT DISTINCT
+        REPLACE(s."shopify_order_name", '#', '') AS oid,
+        CAST(TRY_TO_TIMESTAMP(s."created_at", 'DD/MM/YYYY HH12:MI AM') AS DATE) AS dt,
+        TRY_TO_DOUBLE(TO_VARCHAR(s."grand_total")) AS val,
+        CASE WHEN LOWER(TRIM(s."utm_medium")) IN ('cpc', 'paid') THEN 1
+             WHEN LOWER(TRIM(s."utm_source")) IN ('fb', 'facebook', 'google', 'snapchat', 'criteo', 'jiohotstar') THEN 1
+             ELSE 0 END AS is_paid
+      FROM ${WEB_SWIFT} s
+      JOIN ${WEB_NRC} nrc ON REPLACE(s."shopify_order_name", '#', '') = REPLACE(nrc.order_name, '#', '')
+      WHERE nrc.customer_status IN (${custList})
+        AND CAST(TRY_TO_TIMESTAMP(s."created_at", 'DD/MM/YYYY HH12:MI AM') AS DATE)
+            BETWEEN DATEADD(day, -(${days - 1}), TO_DATE(?)) AND TO_DATE(?)
+    )
+    SELECT TO_CHAR(dt, 'YYYY-MM-DD') AS d,
+      SUM(IFF(is_paid=0, val, 0)) AS org_rev,
+      SUM(IFF(is_paid=1, val, 0)) AS paid_rev,
+      COUNT(DISTINCT IFF(is_paid=0, oid, NULL)) AS org_ord,
+      COUNT(DISTINCT IFF(is_paid=1, oid, NULL)) AS paid_ord
+    FROM src
+    GROUP BY dt
+    ORDER BY dt DESC
+  `;
+  const raw = await runQuery(sql, [date, date]);
+  return raw.map(r => {
+    const g = makeGetter(r);
+    const orgRev = num(g('org_rev')), paidRev = num(g('paid_rev'));
+    const orgOrd = num(g('org_ord')), paidOrd = num(g('paid_ord'));
+    const d = strv(g('d'));
+    const dt = new Date(d + 'T00:00:00Z');
+    return {
+      date: d,
+      month: d.slice(0, 7),
+      dayName: dt.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' }),
+      organicRevenue: orgRev, paidRevenue: paidRev,
+      organicOrders: orgOrd, paidOrders: paidOrd,
+      totalRevenue: orgRev + paidRev, totalOrders: orgOrd + paidOrd,
+    };
+  });
+}
+
+// ── "Website Product Wise Summary" — Units-Volume & SP-Sales per product,
+//    same 3-window shape as the rest of this report. Reuses the exact
+//    channel_name='Website' + customer-status join as fetchWebsiteDaily's
+//    own `web` CTE, and the category/sub_category/product_name columns
+//    already proven in fetchCube — just grouped by product instead of
+//    collapsed to one total. ──
+async function fetchWebsiteProductSummary(date) {
+  if (!date || !YMD_RX.test(date)) throw new Error('Invalid date');
+  const custList = WEB_CUST_STATUSES.map(s => `'${s.replace(/'/g, "''")}'`).join(', ');
+  const sql = `
+    WITH params AS (
+      SELECT TO_DATE(?) AS d,
+             DATE_TRUNC('month', TO_DATE(?)) AS m_start,
+             DATEADD(month, -1, DATE_TRUNC('month', TO_DATE(?))) AS pm_start
+    ),
+    bounds AS (
+      SELECT d, m_start, pm_start,
+        CASE WHEN d = LAST_DAY(d) THEN LAST_DAY(pm_start)
+             ELSE LEAST(DATEADD(day, EXTRACT(day FROM d) - 1, pm_start), LAST_DAY(pm_start))
+        END AS pm_end
+      FROM params
+    ),
+    web AS (
+      SELECT
+        s.order_date AS dt,
+        COALESCE(TO_VARCHAR(s.category), '(uncategorised)') AS category,
+        COALESCE(TO_VARCHAR(s.sub_category), '(uncategorised)') AS sub_category,
+        COALESCE(TO_VARCHAR(s.product_name), TO_VARCHAR(s.sku), '(unmapped)') AS product,
+        CASE WHEN s.order_status = 'sales' THEN TRY_TO_DOUBLE(TO_VARCHAR(s.selling_price_per_unit)) * TRY_TO_DOUBLE(TO_VARCHAR(s.qty)) ELSE 0 END AS net,
+        CASE WHEN LOWER(TRIM(s.order_status)) = 'returns' THEN TRY_TO_DOUBLE(TO_VARCHAR(s.selling_price_per_unit)) * TRY_TO_DOUBLE(TO_VARCHAR(s.qty)) ELSE 0 END AS rnet,
+        TRY_TO_DOUBLE(TO_VARCHAR(s.qty)) AS qty
+      FROM ${WEB_SALES} s
+      WHERE s.channel_name = 'Website'
+        AND (s.sub_category IS NULL OR TO_VARCHAR(s.sub_category) NOT IN ('Freebie', 'Others'))
+        -- Rows with no sku AND no product_name carry no identifying info at
+        -- all (not even a category) — confirmed live: ~21K such Website lines
+        -- this month alone, all sales-status. These still count toward the
+        -- channel-level Sec/MRP Sales totals elsewhere (that query doesn't
+        -- group by product), but a per-product breakdown has nothing
+        -- meaningful to show for them, and Hex's own product-wise summary
+        -- carries no such row — so they're dropped here only.
+        AND (s.sku IS NOT NULL OR s.product_name IS NOT NULL)
+        AND EXISTS (
+          SELECT 1 FROM ${WEB_NRC} nrc
+          WHERE REPLACE(nrc.order_name, '#', '') = REPLACE(s.order_number, '#', '')
+            AND nrc.customer_status IN (${custList})
+        )
+    ),
+    webf AS (
+      SELECT w.*, b.d, b.m_start, b.pm_start, b.pm_end
+      FROM web w CROSS JOIN bounds b
+      WHERE w.dt BETWEEN b.pm_start AND b.d
+    )
+    SELECT category, sub_category, product,
+      SUM(IFF(dt=d, net+rnet, 0)) AS sp_sel, SUM(IFF(dt BETWEEN m_start AND d, net+rnet, 0)) AS sp_mtd, SUM(IFF(dt BETWEEN pm_start AND pm_end, net+rnet, 0)) AS sp_pm,
+      SUM(IFF(dt=d, qty, 0)) AS qty_sel, SUM(IFF(dt BETWEEN m_start AND d, qty, 0)) AS qty_mtd, SUM(IFF(dt BETWEEN pm_start AND pm_end, qty, 0)) AS qty_pm
+    FROM webf
+    GROUP BY category, sub_category, product
+    HAVING sp_sel<>0 OR sp_mtd<>0 OR sp_pm<>0 OR qty_sel<>0 OR qty_mtd<>0 OR qty_pm<>0
+  `;
+  const raw = await runQuery(sql, [date, date, date]);
+  return raw.map(r => {
+    const g = makeGetter(r);
+    return {
+      category: strv(g('category')), subCategory: strv(g('sub_category')), product: strv(g('product')),
+      sp: { sel: num(g('sp_sel')), mtd: num(g('sp_mtd')), pm: num(g('sp_pm')) },
+      qty: { sel: num(g('qty_sel')), mtd: num(g('qty_mtd')), pm: num(g('qty_pm')) },
+    };
+  });
+}
+
+// ── Website target: reuses the existing primary-targets table. Not
+//    confirmed against the Hex SQL (only the rendered chart was seen), but
+//    this is the same gs_primary_targets source and proration already used
+//    for every other channel's target bar — if 'Website' isn't a channel key
+//    there, this just degrades to no target (same as any other untargeted
+//    channel elsewhere in the app), never an error. ──
+async function fetchWebsiteTarget(date) {
+  const ym = String(date).slice(0, 7);
+  const mStart = ym + '-01';
+  const targets = await fetchPrimaryTargets(ym).catch(() => []);
+  const row = targets.find(t => t.channel === 'Website');
+  if (!row) return null;
+  const days = Math.round((new Date(date) - new Date(mStart)) / 86400000) + 1;
+  return row.perDay * days;
+}
+
+export {
+  fetchWebsiteDaily, buildWebsiteMetrics, fetchWebsiteFreshness,
+  fetchWebsiteDOD, fetchWebsiteProductSummary, fetchWebsiteTarget,
+};
 
 // ═════════════════════════════════════════════════════════════════════════
 //  BRAND MARKET SHARE (WBR - Brand)

@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Cell } from 'recharts';
-import html2canvas from 'html2canvas';
 import { getJSON } from '../lib/api.js';
 import { inrShort, indianGroup, countShort, pct, longDate } from '../lib/format.js';
 import { KpiSkeletons, ErrorBox } from '../components/ui.jsx';
 import { ChannelLogo } from '../components/viz.jsx';
 import Freshness from '../components/Freshness.jsx';
 import { todayIST, shiftYMD } from '../dateUtils.js';
+import { copyChannelImage, copyImageLabel } from '../lib/copyImage.js';
 
 // Hex display order of channel blocks
 const BLOCK_ORDER = [
@@ -22,42 +22,6 @@ const logoKey = n => ({
 const TARGET_KEY = { 'Nykaa': 'Nykaa (P)', 'Purplle': 'Purplle (P)', 'Blinkit': 'Blinkit (P)', 'Zepto': 'Zepto (P)', 'Swiggy IM': 'Instamart (P)', 'Myntra SJIT': 'Myntra', 'Flipkart Minutes': 'Flipkart Minutes (P)', 'Amazon Now': 'Amazon_Now(P)' };
 
 const n2 = (v, d = 2) => (v == null || isNaN(v) ? null : v.toFixed(d));
-
-// Render a channel's report to PNG and put it on the clipboard as an image,
-// so it can be pasted straight into an email draft. Falls back to a file
-// download when the browser doesn't support clipboard image writes.
-async function copyChannelImage(node, onStatus) {
-  if (!node) return;
-  onStatus('copying');
-  let blob;
-  try {
-    const canvas = await html2canvas(node, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
-    blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    if (!blob) throw new Error('Could not render image');
-  } catch (e) {
-    console.error('[copy image] render failed', e);
-    onStatus('error');
-    setTimeout(() => onStatus('idle'), 1800);
-    return;
-  }
-  // Clipboard image writes need a browser that supports it AND an actual
-  // grant for this page — either can fail, so fall back to a direct
-  // download rather than leaving the button at a dead end.
-  try {
-    if (!navigator.clipboard || !window.ClipboardItem) throw new Error('Clipboard image API unavailable');
-    await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
-    onStatus('copied');
-  } catch (e) {
-    console.warn('[copy image] clipboard write failed, falling back to download', e);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `daily-report-${node.dataset.channel || 'channel'}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-    onStatus('downloaded');
-  }
-  setTimeout(() => onStatus('idle'), 1800);
-}
 
 // MoM cell — Hex renders %_Change_MoM (mtd vs mtd_prev) with red/green fill.
 // Metrics that are ALREADY a percentage (Discount %, TACOS %, CTR % …) show
@@ -115,9 +79,7 @@ function ChannelBlock({ r, open, onToggle, date }) {
   const shotRef = useRef(null);
   const [copyState, setCopyState] = useState('idle');
   const handleCopy = () => copyChannelImage(shotRef.current, setCopyState);
-  const copyLabel = {
-    copying: 'Copying…', copied: '✓ Copied', downloaded: '↓ Downloaded', error: "Couldn't copy",
-  }[copyState] || '⧉ Copy image';
+  const copyLabel = copyImageLabel(copyState);
 
   // Full figures, not ₹35.4L/₹1.2Cr shorthand — matches the Hex export exactly.
   const money = v => '₹' + indianGroup(Math.round(v)), int = v => indianGroup(Math.round(v));
