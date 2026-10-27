@@ -106,7 +106,7 @@ export default function SplashScreen({
   const D = {
     bg: '#0B0C0E', panel: '#15171A', line: '#23262B', line2: '#30343A',
     t1: '#F4F5F6', t2: '#B5BAC1', t3: '#7E848C',
-    acc: '#6472FF',
+    acc: '#2F6FED',
   };
   const DISPLAY = "'Plus Jakarta Sans',system-ui,sans-serif";
   const BODY = "'Inter',system-ui,sans-serif";
@@ -136,7 +136,7 @@ export default function SplashScreen({
           style={{
             position: 'absolute', top: '-18%', left: '30%', width: 560, height: 560,
             borderRadius: '50%', filter: 'blur(150px)',
-            background: 'radial-gradient(circle, rgba(100,114,255,.14), transparent 70%)',
+            background: 'radial-gradient(circle, rgba(47,111,237,.14), transparent 70%)',
           }}
         />
       </motion.div>

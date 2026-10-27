@@ -121,9 +121,28 @@ function SummaryTable({ rows, targets, showTargets }) {
   );
 }
 
+const GROUP_SCOPES = ['All', 'B2C', 'B2B', 'Q-Commerce'];
+
+// Scope pill row for the D-1 / M-1 tables — same look as Adsight's Daily QC
+// Performance platform switcher (bordered pills, filled + accent border when
+// active), just driving a Group filter instead of a Platform one.
+function GroupSwitcher({ value, onChange }) {
+  return (
+    <div className="group-switcher rise">
+      <span className="group-switcher-lbl">Scope</span>
+      {GROUP_SCOPES.map(g => (
+        <button key={g} type="button" className={'group-pill' + (value === g ? ' on' : '')} onClick={() => onChange(g)}>
+          {g}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function DailyReport() {
   const [date, setDate] = useState(shiftYMD(todayIST(), -1)); // Hex default: yesterday
   const [dataset, setDataset] = useState('snapshot');
+  const [groupFilter, setGroupFilter] = useState('All');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -142,6 +161,11 @@ export default function DailyReport() {
     const by = g => data.d1.filter(r => r.group === g);
     return { all: totals(data.d1), b2c: totals(by('B2C')), b2b: totals(by('B2B')), qc: totals(by('Q-Commerce')) };
   }, [data]);
+
+  // D-1 / M-1 tables scoped to the selected group — "All" shows every channel,
+  // same rows as before the switcher existed.
+  const scopedD1 = useMemo(() => (!data || groupFilter === 'All') ? (data && data.d1) : data.d1.filter(r => r.group === groupFilter), [data, groupFilter]);
+  const scopedMtd = useMemo(() => (!data || groupFilter === 'All') ? (data && data.mtd) : data.mtd.filter(r => r.group === groupFilter), [data, groupFilter]);
 
   const staleness = ymd => {
     if (!ymd) return null;
@@ -203,14 +227,16 @@ export default function DailyReport() {
             <GroupCard title="Q-Commerce" t={groups.qc} />
           </div>
 
+          <GroupSwitcher value={groupFilter} onChange={setGroupFilter} />
+
           <div className="section rise d1"><h2>D-1 Summary</h2><span className="note">selected date vs same day last month · Flipkart D-1 lag applied</span></div>
           <div className="card rise d1" style={{ overflowX: 'auto' }}>
-            <SummaryTable rows={data.d1} targets={data.targets} showTargets={false} />
+            <SummaryTable rows={scopedD1} targets={data.targets} showTargets={false} />
           </div>
 
           <div className="section rise d2"><h2>M-1 Summary · MTD</h2><span className="note">month-to-date vs same days last month · with monthly net targets</span></div>
           <div className="card rise d2" style={{ overflowX: 'auto' }}>
-            <SummaryTable rows={data.mtd} targets={data.targets} showTargets={true} />
+            <SummaryTable rows={scopedMtd} targets={data.targets} showTargets={true} />
           </div>
 
           <Freshness

@@ -23,7 +23,7 @@ import { shiftYMD, daysBetween } from '../dateUtils.js';
                 whatever window is currently selected up top — flagged in a
                 caveat when a question asks for a different period.
 ════════════════════════════════════════════════════════════════════════*/
-const ASSISTANT_NAME = 'Revis';
+const ASSISTANT_NAME = 'Rev';
 
 const ASST_METRICS = ['mrpSales', 'spSales', 'units', 'orders', 'aov', 'discount', 'netRevenue', 'cm1', 'cm2', 'cm3', 'tacos', 'roas'];
 const ASST_DIMS = [

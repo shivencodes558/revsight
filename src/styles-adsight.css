@@ -249,6 +249,20 @@
 }
 .askfab:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(20,21,15,.24); }
 
+/* ── group scope switcher (Daily Business Report) — same pill pattern as
+   Adsight's Daily QC Performance platform selector: bordered pills, filled +
+   accent border when active, plain surface when not. ──────────────────── */
+.group-switcher { display: flex; align-items: center; gap: 8px; margin: 2px 0 14px; flex-wrap: wrap; }
+.group-switcher-lbl { font-family: var(--mono); font-size: 9px; color: var(--ink-3); letter-spacing: .1em; text-transform: uppercase; margin-right: 2px; }
+.group-pill {
+  display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 10px;
+  border: 1px solid var(--line-2); background: var(--panel); cursor: pointer;
+  font-family: var(--display); font-size: 13px; font-weight: 500; color: var(--ink-2);
+  transition: border-color .15s, background .15s, color .15s;
+}
+.group-pill:hover { border-color: var(--accent-2); }
+.group-pill.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+
 /* ── Ask Revis — floating chat panel ───────────────────────────────────── */
 @keyframes askGenieIn { from { opacity: 0; transform: scale(.92) translateY(14px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @keyframes askGenieOut { from { opacity: 1; transform: scale(1) translateY(0); } to { opacity: 0; transform: scale(.92) translateY(14px); } }
